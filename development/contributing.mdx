@@ -1,0 +1,566 @@
+---
+title: Contributing to Netcatty
+description: Contribution guidelines, code style, and pull request process
+icon: code-pull-request
+---
+
+Thank you for your interest in contributing to Netcatty! This guide covers the contribution process, code style, and best practices.
+
+## Getting Started
+
+From `README.md:297-307`:
+
+1. **Fork the repository**
+2. **Create your feature branch:** `git checkout -b feature/amazing-feature`
+3. **Commit your changes:** `git commit -m 'Add some amazing feature'`
+4. **Push to the branch:** `git push origin feature/amazing-feature`
+5. **Open a Pull Request**
+
+<Info>
+See [agents.md](https://github.com/binaricat/Netcatty/blob/main/agents.md) for architecture overview and coding conventions.
+</Info>
+
+## Development Setup
+
+### Prerequisites
+
+- Node.js 18+ and npm
+- Git
+- Platform-specific build tools (see [Building Guide](/development/building))
+
+### Setup Steps
+
+```bash
+# Clone your fork
+git clone https://github.com/YOUR_USERNAME/Netcatty.git
+cd Netcatty
+
+# Add upstream remote
+git remote add upstream https://github.com/binaricat/Netcatty.git
+
+# Install dependencies
+npm install
+
+# Start development mode
+npm run dev
+```
+
+### Keeping Your Fork Updated
+
+```bash
+# Fetch upstream changes
+git fetch upstream
+
+# Merge upstream main into your branch
+git checkout main
+git merge upstream/main
+
+# Push updates to your fork
+git push origin main
+```
+
+## Code Style
+
+### TypeScript
+
+Netcatty uses TypeScript for type safety and better developer experience.
+
+**Type definitions:**
+- All domain models in `domain/models.ts`
+- Use interfaces for object shapes
+- Use type aliases for unions and primitives
+- Avoid `any` - use `unknown` if type is truly unknown
+
+**Example:**
+```typescript
+// Good
+interface ConnectionConfig {
+  hostname: string;
+  port: number;
+  username: string;
+}
+
+// Avoid
+const config: any = { ... };
+```
+
+### ESLint
+
+Code is linted with ESLint (configuration in `eslint.config.js`).
+
+```bash
+# Check for issues
+npm run lint
+
+# Auto-fix issues
+npm run lint:fix
+```
+
+**Key rules:**
+- No unused variables
+- No unused imports (via `eslint-plugin-unused-imports`)
+- React hooks rules (via `eslint-plugin-react-hooks`)
+- TypeScript recommended rules
+
+### Code Formatting
+
+**Indentation:** 2 spaces (not tabs)  
+**Line length:** No hard limit, but keep readable (~100-120 chars)  
+**Quotes:** Single quotes for strings (except JSX attributes)  
+**Semicolons:** Required  
+**Trailing commas:** Yes (for multi-line)
+
+**Example:**
+```typescript
+const config = {
+  hostname: 'example.com',
+  port: 22,
+  username: 'admin',
+}; // Trailing comma
+```
+
+### Naming Conventions
+
+**Files:**
+- React components: `PascalCase.tsx` (e.g., `Terminal.tsx`)
+- Hooks: `camelCase.ts` (e.g., `useSessionState.ts`)
+- Utilities: `camelCase.ts` (e.g., `workspace.ts`)
+- Electron bridges: `camelCase.cjs` (e.g., `sshBridge.cjs`)
+
+**Code:**
+- Components: `PascalCase` (e.g., `Terminal`, `SftpView`)
+- Functions/hooks: `camelCase` (e.g., `useVaultState`, `findDefaultKey`)
+- Constants: `UPPER_SNAKE_CASE` (e.g., `STORAGE_KEY_HOSTS`)
+- Interfaces/Types: `PascalCase` (e.g., `Host`, `SSHKey`)
+
+## Architecture Guidelines
+
+From `agents.md:41-45`:
+
+<AccordionGroup>
+  <Accordion title="Layer Separation">
+    **Domain Layer** (`domain/`):
+    - Pure functions and types only
+    - No side effects, no I/O
+    - No dependencies on other layers
+
+    **Application Layer** (`application/state/`):
+    - React hooks for state management
+    - Orchestrates domain logic and infrastructure
+    - Manages persistence boundaries
+
+    **Infrastructure Layer** (`infrastructure/`):
+    - External I/O, services, adapters
+    - Configuration and defaults
+    - No UI logic
+
+    **UI Layer** (`components/`, `App.tsx`):
+    - Presentation only
+    - Calls application hooks for state
+    - Calls domain helpers for pure logic
+    - No direct infrastructure access
+  </Accordion>
+
+  <Accordion title="Data Flow">
+    ```
+    UI → Application Hooks → Domain Logic
+                           → Infrastructure Services
+    ```
+
+    - UI components call hooks (not services directly)
+    - Hooks call domain helpers for business logic
+    - Hooks call infrastructure adapters for I/O
+    - Domain never calls infrastructure or hooks
+  </Accordion>
+
+  <Accordion title="State Management">
+    - Use React hooks for state (not Redux/MobX)
+    - Prefer composition over prop drilling
+    - Lift shared state into hooks
+    - Use Context sparingly (hooks preferred)
+  </Accordion>
+
+  <Accordion title="File Organization">
+    - Keep related code together
+    - Group by feature, not by type
+    - Extract reusable components to `components/ui/`
+    - Extract shared logic to domain helpers
+  </Accordion>
+</AccordionGroup>
+
+## Coding Conventions
+
+From `agents.md:41-45`:
+
+### Pure Domain Logic
+
+<Warning>
+Keep domain logic pure - no side effects in `domain/` files.
+</Warning>
+
+**Good:**
+```typescript
+// domain/workspace.ts
+export function splitPaneHorizontal(node: WorkspaceNode): WorkspaceNode {
+  // Pure function - returns new object, no mutations
+  return {
+    type: 'split',
+    direction: 'horizontal',
+    children: [node, createNewPane()],
+  };
+}
+```
+
+**Avoid:**
+```typescript
+// domain/workspace.ts
+export function splitPaneHorizontal(node: WorkspaceNode) {
+  // BAD: Mutates input, has side effects
+  node.children.push(createNewPane());
+  localStorage.setItem('workspace', JSON.stringify(node));
+}
+```
+
+### Side Effects in Application Layer
+
+**Good:**
+```typescript
+// application/state/useSessionState.ts
+export function useSessionState() {
+  const [sessions, setSessions] = useState<Session[]>([]);
+
+  // Side effects in hooks
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_SESSIONS);
+    if (saved) setSessions(JSON.parse(saved));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(sessions));
+  }, [sessions]);
+
+  return { sessions, setSessions };
+}
+```
+
+### Component Simplicity
+
+From `agents.md:38-39`:
+
+<Info>
+Keep components dumb. If prop lists grow large, derive a smaller view model in the hook.
+</Info>
+
+**Good:**
+```typescript
+// In hook
+const viewModel = useMemo(() => ({
+  hosts: filteredHosts,
+  totalCount: hosts.length,
+  hasSelection: selectedIds.length > 0,
+}), [filteredHosts, hosts.length, selectedIds.length]);
+
+// In component
+<HostList {...viewModel} onSelect={handleSelect} />
+```
+
+**Avoid:**
+```typescript
+// Passing too many individual props
+<HostList 
+  hosts={hosts}
+  filter={filter}
+  sortBy={sortBy}
+  selectedIds={selectedIds}
+  // ... 20 more props
+/>
+```
+
+### Storage Keys
+
+From `agents.md:31-33`:
+
+<Warning>
+All localStorage operations MUST use keys from `infrastructure/config/storageKeys.ts`. Avoid ad-hoc localStorage calls.
+</Warning>
+
+**Good:**
+```typescript
+import { STORAGE_KEY_HOSTS } from '@/infrastructure/config/storageKeys';
+
+localStorage.setItem(STORAGE_KEY_HOSTS, JSON.stringify(hosts));
+```
+
+**Avoid:**
+```typescript
+// BAD: Ad-hoc key
+localStorage.setItem('my-custom-hosts-key', JSON.stringify(hosts));
+```
+
+### Temporary Files
+
+From `agents.md:34`:
+
+<Warning>
+All temporary files MUST be written to Netcatty's temp directory via `tempDirBridge.getTempFilePath(fileName)`. Do NOT use `os.tmpdir()` directly.
+</Warning>
+
+**Good:**
+```javascript
+// In Electron bridge
+const tempPath = await tempDirBridge.getTempFilePath('edit-file.txt');
+await fs.promises.writeFile(tempPath, content);
+```
+
+**Avoid:**
+```javascript
+// BAD: Direct os.tmpdir() usage
+const tempPath = path.join(os.tmpdir(), 'edit-file.txt');
+```
+
+### No Direct Network Calls in UI
+
+From `agents.md:43-44`:
+
+**Good:**
+```typescript
+// Create service first
+// infrastructure/services/githubService.ts
+export async function fetchGist(gistId: string) {
+  const response = await fetch(`https://api.github.com/gists/${gistId}`);
+  return response.json();
+}
+
+// Use in hook
+const gist = await githubService.fetchGist(id);
+```
+
+**Avoid:**
+```typescript
+// BAD: Direct fetch in component
+function MyComponent() {
+  useEffect(() => {
+    fetch('https://api.github.com/gists/123').then(...);
+  }, []);
+}
+```
+
+## Commit Guidelines
+
+### Commit Message Format
+
+Use conventional commit format:
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+**Types:**
+- `feat` - New feature
+- `fix` - Bug fix
+- `docs` - Documentation changes
+- `style` - Code style (formatting, semicolons, etc.)
+- `refactor` - Code refactoring
+- `perf` - Performance improvements
+- `test` - Adding/updating tests
+- `chore` - Build process, dependencies, etc.
+
+**Examples:**
+```bash
+git commit -m "feat(sftp): add compressed upload support"
+git commit -m "fix(terminal): resolve copy/paste on Windows"
+git commit -m "docs(readme): update build instructions"
+git commit -m "refactor(ssh): extract auth logic to sshAuthHelper"
+```
+
+### Commit Best Practices
+
+- **One logical change per commit**
+- **Write meaningful commit messages** (explain why, not just what)
+- **Reference issues** if applicable (`Fixes #123`, `Closes #456`)
+- **Keep commits atomic** (each commit should build successfully)
+
+## Testing
+
+From `agents.md:36-37`:
+
+<Info>
+Favor unit tests for domain helpers and hook-level tests for application state.
+</Info>
+
+### Test Coverage Priority
+
+1. **Domain logic** (`domain/`) - Pure functions should be well-tested
+2. **Application hooks** (`application/state/`) - State management logic
+3. **Utilities** - Helper functions and parsers
+
+### Running Tests
+
+```bash
+# Run tests (when test suite is available)
+npm test
+
+# Run with coverage
+npm run test:coverage
+```
+
+## Pull Request Process
+
+### Before Submitting
+
+<Steps>
+  <Step title="Ensure code quality">
+    ```bash
+    # Run linter
+    npm run lint
+
+    # Fix auto-fixable issues
+    npm run lint:fix
+
+    # Ensure app builds
+    npm run build
+
+    # Test in development mode
+    npm run dev
+    ```
+  </Step>
+
+  <Step title="Update documentation">
+    - Update README.md if adding features
+    - Add JSDoc comments to new functions
+    - Update type definitions if changing models
+  </Step>
+
+  <Step title="Test your changes">
+    - Manual testing in development mode
+    - Test on your target platform(s)
+    - Verify no regressions in existing features
+  </Step>
+
+  <Step title="Commit your changes">
+    ```bash
+    git add .
+    git commit -m "feat(scope): description"
+    git push origin feature/your-feature
+    ```
+  </Step>
+</Steps>
+
+### Pull Request Template
+
+**Title:** Brief description of changes (e.g., "Add SFTP compressed upload support")
+
+**Description:**
+```markdown
+## Summary
+- What does this PR do?
+- Why is this change needed?
+
+## Changes
+- List of specific changes made
+- Files modified and why
+
+## Testing
+- How did you test this?
+- Any edge cases to be aware of?
+
+## Screenshots (if applicable)
+- Before/after screenshots for UI changes
+
+## Related Issues
+- Fixes #123
+- Closes #456
+```
+
+### Review Process
+
+1. **Maintainers review** your code
+2. **Address feedback** if requested
+3. **Update PR** based on review comments
+4. **Approval and merge** by maintainer
+
+### After Merge
+
+```bash
+# Update your fork
+git checkout main
+git pull upstream main
+git push origin main
+
+# Delete feature branch (optional)
+git branch -d feature/your-feature
+git push origin --delete feature/your-feature
+```
+
+## Contribution Ideas
+
+### Good First Issues
+
+- Documentation improvements
+- UI/UX enhancements
+- Bug fixes (check GitHub Issues)
+- Adding terminal themes
+- Adding distro icons
+- Translation (i18n)
+
+### Feature Contributions
+
+- New protocol support
+- Enhanced SFTP features
+- Snippet improvements
+- Vault organization features
+- Settings/preferences
+- Port forwarding enhancements
+
+### Infrastructure Improvements
+
+- Test coverage
+- Build process optimization
+- Performance improvements
+- Accessibility enhancements
+- Error handling improvements
+
+## Code of Conduct
+
+### Our Standards
+
+- **Be respectful** of differing viewpoints and experiences
+- **Accept constructive criticism** gracefully
+- **Focus on what's best** for the community and project
+- **Show empathy** towards other community members
+
+### Unacceptable Behavior
+
+- Harassment, trolling, or derogatory comments
+- Personal or political attacks
+- Publishing others' private information
+- Any conduct inappropriate in a professional setting
+
+## Getting Help
+
+<CardGroup cols={2}>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/binaricat/Netcatty/issues">
+    Ask questions and report bugs
+  </Card>
+  <Card title="GitHub Discussions" icon="comments" href="https://github.com/binaricat/Netcatty/discussions">
+    Community discussions and ideas
+  </Card>
+</CardGroup>
+
+## License
+
+From `README.md:320-324`:
+
+Netcatty is licensed under **GPL-3.0 License**. By contributing, you agree that your contributions will be licensed under the same license.
+
+See the [LICENSE](https://github.com/binaricat/Netcatty/blob/main/LICENSE) file for details.
+
+---
+
+<Note>
+Thank you for contributing to Netcatty! Your contributions help make SSH management better for everyone.
+</Note>

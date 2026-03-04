@@ -1,0 +1,642 @@
+---
+title: Custom Themes
+description: Create and customize terminal themes with colors and fonts
+icon: 'palette'
+---
+
+## Overview
+
+Netcatty includes 60+ built-in terminal themes and supports full theme customization. Create your own color schemes, adjust fonts, and apply themes globally or per-host.
+
+## Terminal Themes
+
+Themes define the color palette and visual appearance of your terminal.
+
+### Theme Structure
+
+<ResponseField name="TerminalTheme" type="object">
+  <Expandable title="Properties">
+    <ResponseField name="id" type="string" required>
+      Unique theme identifier (e.g., `dracula`, `custom-blue`)
+    </ResponseField>
+    
+    <ResponseField name="name" type="string" required>
+      Display name shown in theme selector
+    </ResponseField>
+    
+    <ResponseField name="type" type="'dark' | 'light'" required>
+      Theme brightness type
+    </ResponseField>
+    
+    <ResponseField name="isCustom" type="boolean">
+      Whether this is a user-created theme
+    </ResponseField>
+    
+    <ResponseField name="colors" type="object" required>
+      ANSI color palette and terminal colors
+      
+      <Expandable title="Color Properties">
+        <ResponseField name="background" type="string" required>
+          Background color (hex: `#282a36`)
+        </ResponseField>
+        
+        <ResponseField name="foreground" type="string" required>
+          Default text color
+        </ResponseField>
+        
+        <ResponseField name="cursor" type="string" required>
+          Cursor color
+        </ResponseField>
+        
+        <ResponseField name="selection" type="string" required>
+          Text selection background
+        </ResponseField>
+        
+        <ResponseField name="black" type="string" required>
+          ANSI black (color 0)
+        </ResponseField>
+        
+        <ResponseField name="red" type="string" required>
+          ANSI red (color 1)
+        </ResponseField>
+        
+        <ResponseField name="green" type="string" required>
+          ANSI green (color 2)
+        </ResponseField>
+        
+        <ResponseField name="yellow" type="string" required>
+          ANSI yellow (color 3)
+        </ResponseField>
+        
+        <ResponseField name="blue" type="string" required>
+          ANSI blue (color 4)
+        </ResponseField>
+        
+        <ResponseField name="magenta" type="string" required>
+          ANSI magenta (color 5)
+        </ResponseField>
+        
+        <ResponseField name="cyan" type="string" required>
+          ANSI cyan (color 6)
+        </ResponseField>
+        
+        <ResponseField name="white" type="string" required>
+          ANSI white (color 7)
+        </ResponseField>
+        
+        <ResponseField name="brightBlack" type="string" required>
+          ANSI bright black (color 8)
+        </ResponseField>
+        
+        <ResponseField name="brightRed" type="string" required>
+          ANSI bright red (color 9)
+        </ResponseField>
+        
+        <ResponseField name="brightGreen" type="string" required>
+          ANSI bright green (color 10)
+        </ResponseField>
+        
+        <ResponseField name="brightYellow" type="string" required>
+          ANSI bright yellow (color 11)
+        </ResponseField>
+        
+        <ResponseField name="brightBlue" type="string" required>
+          ANSI bright blue (color 12)
+        </ResponseField>
+        
+        <ResponseField name="brightMagenta" type="string" required>
+          ANSI bright magenta (color 13)
+        </ResponseField>
+        
+        <ResponseField name="brightCyan" type="string" required>
+          ANSI bright cyan (color 14)
+        </ResponseField>
+        
+        <ResponseField name="brightWhite" type="string" required>
+          ANSI bright white (color 15)
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Built-in Themes
+
+Netcatty includes 60+ carefully curated themes across various styles.
+
+### Popular Themes
+
+<Tabs>
+  <Tab title="Dark Themes">
+    <CardGroup cols={2}>
+      <Card title="Netcatty Dark" icon="moon">
+        Default dark theme with blue accents
+        
+        **Colors:**
+        - Background: `#0d1117`
+        - Foreground: `#c9d1d9`
+        - Accent: `#58a6ff`
+      </Card>
+      
+      <Card title="Dracula" icon="bat">
+        Popular purple-based dark theme
+        
+        **Colors:**
+        - Background: `#282a36`
+        - Foreground: `#f8f8f2`
+        - Accent: `#ff79c6`
+      </Card>
+      
+      <Card title="Tokyo Night" icon="building">
+        Modern dark blue theme
+        
+        **Colors:**
+        - Background: `#1a1b26`
+        - Foreground: `#c0caf5`
+        - Accent: `#7aa2f7`
+      </Card>
+      
+      <Card title="Monokai" icon="droplet">
+        Classic coding theme
+        
+        **Colors:**
+        - Background: `#272822`
+        - Foreground: `#f8f8f2`
+        - Accent: `#f92672`
+      </Card>
+    </CardGroup>
+  </Tab>
+  
+  <Tab title="Light Themes">
+    <CardGroup cols={2}>
+      <Card title="Netcatty Light" icon="sun">
+        Clean light theme
+        
+        **Colors:**
+        - Background: `#f6f8fa`
+        - Foreground: `#24292f`
+        - Accent: `#0969da`
+      </Card>
+      
+      <Card title="Solarized Light" icon="solar-panel">
+        Low-contrast light theme
+        
+        **Colors:**
+        - Background: `#fdf6e3`
+        - Foreground: `#657b83`
+        - Accent: `#268bd2`
+      </Card>
+      
+      <Card title="Atom One Light" icon="atom">
+        Bright, readable theme
+        
+        **Colors:**
+        - Background: `#fafafa`
+        - Foreground: `#383a42`
+        - Accent: `#4078f2`
+      </Card>
+    </CardGroup>
+  </Tab>
+  
+  <Tab title="Specialty">
+    <CardGroup cols={2}>
+      <Card title="Hacker Green" icon="terminal">
+        Classic green-on-black
+        
+        **Colors:**
+        - Background: `#0d0208`
+        - Foreground: `#00ff41`
+      </Card>
+      
+      <Card title="Cyberpunk" icon="robot">
+        Neon-inspired theme
+        
+        **Colors:**
+        - Background: `#0d0221`
+        - Foreground: `#ff006e`
+        - Accent: `#06ffa5`
+      </Card>
+      
+      <Card title="Nord Dark" icon="snowflake">
+        Arctic-inspired palette
+        
+        **Colors:**
+        - Background: `#2e3440`
+        - Foreground: `#d8dee9`
+        - Accent: `#81a1c1`
+      </Card>
+    </CardGroup>
+  </Tab>
+</Tabs>
+
+### Theme Categories
+
+Browse themes by style:
+
+- **Professional:** Netcatty, Tokyo Night, Atom One, Material
+- **Classic:** Solarized, Monokai, Dracula, Gruvbox
+- **Colorful:** Aura, Rose Pine, Kanagawa, Cyberpunk
+- **Retro:** Hacker Green, Homebrew, Ocean, Pro
+- **Seasonal:** Halloween, Diwali, Movember
+- **Nature:** Grass, Ocean, Everforest
+
+## Creating Custom Themes
+
+Design your own terminal color scheme.
+
+### UI Workflow
+
+1. Navigate to **Settings** → **Terminal** → **Theme**
+2. Click **Customize** or **Create New**
+3. Theme editor opens with:
+   - **Live preview** terminal on the right
+   - **Color pickers** on the left
+   - **Base theme** selector (start from existing theme)
+4. Adjust colors:
+   - Background/Foreground
+   - Cursor/Selection
+   - 16 ANSI colors (normal + bright)
+5. Test in preview terminal
+6. Click **Save**
+7. Name your theme
+
+### Color Picker Features
+
+- **Hex input:** Type colors directly (`#ff5733`)
+- **Visual picker:** Click and drag to choose
+- **Eyedropper:** Sample colors from screen
+- **Presets:** Quick access to common colors
+
+### Theme JSON Structure
+
+```json
+{
+  "id": "my-custom-theme",
+  "name": "My Custom Theme",
+  "type": "dark",
+  "isCustom": true,
+  "colors": {
+    "background": "#1e1e2e",
+    "foreground": "#cdd6f4",
+    "cursor": "#f5e0dc",
+    "selection": "#313244",
+    "black": "#45475a",
+    "red": "#f38ba8",
+    "green": "#a6e3a1",
+    "yellow": "#f9e2af",
+    "blue": "#89b4fa",
+    "magenta": "#f5c2de",
+    "cyan": "#94e2d5",
+    "white": "#cdd6f4",
+    "brightBlack": "#585b70",
+    "brightRed": "#f38ba8",
+    "brightGreen": "#a6e3a1",
+    "brightYellow": "#f9e2af",
+    "brightBlue": "#89b4fa",
+    "brightMagenta": "#f5c2de",
+    "brightCyan": "#94e2d5",
+    "brightWhite": "#cdd6f4"
+  }
+}
+```
+
+### Importing Themes
+
+Import themes from other terminal emulators.
+
+**Supported Formats:**
+- iTerm2 color schemes (`.itermcolors`)
+- Windows Terminal themes (`settings.json` excerpt)
+- Xterm color files (`.Xresources`)
+
+**Import Steps:**
+
+1. In theme customizer, click **Import**
+2. Select file or paste JSON
+3. Netcatty converts to internal format
+4. Preview and adjust
+5. Save
+
+## Applying Themes
+
+### Global Theme
+
+Set the default theme for all new terminals.
+
+**UI Location:**
+1. Navigate to **Settings** → **Terminal** → **Theme**
+2. Select from dropdown
+3. All new terminals use this theme
+4. Existing terminals update immediately
+
+### Per-Host Theme
+
+Override the global theme for specific hosts.
+
+<ParamField path="theme" type="string">
+  Theme ID to use for this host
+</ParamField>
+
+**Configuration:**
+
+```json
+{
+  "hostname": "production-server.com",
+  "username": "admin",
+  "theme": "dracula"
+}
+```
+
+**UI Workflow:**
+
+1. Open **Host Details** panel
+2. Navigate to **Appearance** section
+3. Select **Theme** from dropdown
+4. Click **Save**
+
+**Use Cases:**
+- **Production servers:** Use red-themed theme as a visual warning
+- **Development:** Use green/blue themes
+- **Personal preference:** Different themes for different projects
+
+### Per-Protocol Theme
+
+Different themes for different protocols on the same host.
+
+<ParamField path="protocols[].theme" type="string">
+  Theme override for specific protocol
+</ParamField>
+
+**Example:**
+
+```json
+{
+  "hostname": "server.example.com",
+  "protocols": [
+    {
+      "protocol": "ssh",
+      "port": 22,
+      "enabled": true,
+      "theme": "tokyo-night"
+    },
+    {
+      "protocol": "telnet",
+      "port": 23,
+      "enabled": true,
+      "theme": "hacker-green"
+    }
+  ]
+}
+```
+
+## Font Customization
+
+Configure terminal fonts globally or per-host.
+
+### Global Font Settings
+
+**UI Location:**
+**Settings** → **Terminal** → **Font**
+
+<ParamField path="fontFamily" type="string">
+  Font family name (e.g., `Fira Code`, `JetBrains Mono`)
+</ParamField>
+
+<ParamField path="fontSize" type="number">
+  Font size in points (default: 13)
+</ParamField>
+
+<ParamField path="fontWeight" type="number">
+  Normal text weight (100-900, default: 400)
+</ParamField>
+
+<ParamField path="fontWeightBold" type="number">
+  Bold text weight (100-900, default: 700)
+</ParamField>
+
+<ParamField path="fontLigatures" type="boolean" default="true">
+  Enable font ligatures (for coding fonts)
+</ParamField>
+
+<ParamField path="linePadding" type="number" default="0">
+  Additional space between lines in pixels
+</ParamField>
+
+### Recommended Fonts
+
+<Tabs>
+  <Tab title="Coding Fonts (Ligatures)">
+    - **Fira Code** - Popular with extensive ligatures
+    - **JetBrains Mono** - Designed for developers
+    - **Cascadia Code** - Microsoft's coding font
+    - **Victor Mono** - Cursive italics
+    - **Iosevka** - Narrow, customizable
+  </Tab>
+  
+  <Tab title="Classic Monospace">
+    - **Menlo** - macOS default
+    - **Consolas** - Windows classic
+    - **Monaco** - macOS classic
+    - **Courier New** - Universal
+    - **DejaVu Sans Mono** - Linux standard
+  </Tab>
+  
+  <Tab title="Terminal Fonts">
+    - **Source Code Pro** - Adobe's monospace
+    - **Inconsolata** - Narrow, readable
+    - **Ubuntu Mono** - Ubuntu's font
+    - **Hack** - Clear at small sizes
+  </Tab>
+</Tabs>
+
+### Per-Host Fonts
+
+<ParamField path="fontFamily" type="string">
+  Font family override for this host
+</ParamField>
+
+<ParamField path="fontSize" type="number">
+  Font size override for this host
+</ParamField>
+
+**Example:**
+
+```json
+{
+  "hostname": "code-server.com",
+  "fontFamily": "Fira Code",
+  "fontSize": 14
+}
+```
+
+<Info>
+  Host-specific font settings override global settings.
+</Info>
+
+## Managing Custom Themes
+
+### Viewing Themes
+
+**UI Location:**
+**Settings** → **Terminal** → **Themes** → **Custom**
+
+Custom themes are marked with a badge and shown separately from built-in themes.
+
+### Editing Themes
+
+1. Navigate to custom themes list
+2. Click on a theme
+3. Theme editor opens with current colors
+4. Make changes
+5. Click **Update**
+
+### Duplicating Themes
+
+Create variations of existing themes:
+
+1. Open any theme (built-in or custom)
+2. Click **Duplicate**
+3. Modify colors
+4. Save with new name
+
+### Deleting Themes
+
+1. Navigate to custom themes
+2. Click on theme to delete
+3. Click **Delete**
+4. Confirm deletion
+
+<Warning>
+  Deleting a theme that's in use will revert affected terminals to the global theme.
+</Warning>
+
+### Exporting Themes
+
+Share your custom themes:
+
+1. Open theme in editor
+2. Click **Export**
+3. Choose format:
+   - **JSON:** Netcatty format
+   - **iTerm2:** `.itermcolors` file
+   - **Windows Terminal:** JSON snippet
+4. Save file
+
+### Importing Themes
+
+1. Navigate to **Settings** → **Terminal** → **Themes**
+2. Click **Import**
+3. Select file or paste content
+4. Netcatty validates and converts
+5. Preview and save
+
+## Theme Storage
+
+Custom themes are stored locally using Electron's storage system.
+
+**Location:**
+- **Mac:** `~/Library/Application Support/Netcatty/themes.json`
+- **Windows:** `%APPDATA%\Netcatty\themes.json`
+- **Linux:** `~/.config/Netcatty/themes.json`
+
+Themes sync across Netcatty windows via IPC.
+
+## Theme Best Practices
+
+<AccordionGroup>
+  <Accordion title="Color Selection">
+    - **Contrast:** Ensure text is readable (WCAG AA: 4.5:1 ratio)
+    - **Consistency:** Keep similar colors across normal/bright variants
+    - **Purpose:** Use red for errors, green for success, yellow for warnings
+  </Accordion>
+  
+  <Accordion title="Brightness">
+    - **Dark themes:** Background < 20% brightness, foreground > 80%
+    - **Light themes:** Background > 90% brightness, foreground < 30%
+    - **Test both:** Verify readability in bright and dark environments
+  </Accordion>
+  
+  <Accordion title="ANSI Colors">
+    - **Standard order:** Black, Red, Green, Yellow, Blue, Magenta, Cyan, White
+    - **Bright variants:** Should be noticeably brighter/saturated
+    - **Semantic meaning:** Respect common terminal color conventions
+  </Accordion>
+  
+  <Accordion title="Testing">
+    - **Real content:** Test with actual terminal output (ls, git, logs)
+    - **Syntax highlighting:** Try vim/nano color schemes
+    - **Eye strain:** Use theme for 30 minutes before finalizing
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Font Not Appearing">
+    **Possible Causes:**
+    - Font not installed on system
+    - Font name misspelled
+    
+    **Solution:**
+    1. Verify font is installed: Check Font Book (Mac) / Fonts (Windows)
+    2. Use exact font name (case-sensitive)
+    3. Restart Netcatty after installing fonts
+  </Accordion>
+  
+  <Accordion title="Ligatures Not Working">
+    **Solution:**
+    - Ensure font supports ligatures (Fira Code, JetBrains Mono, etc.)
+    - Enable **Font Ligatures** in Settings → Terminal
+    - Verify font is loaded correctly
+  </Accordion>
+  
+  <Accordion title="Theme Not Applying">
+    **Solution:**
+    - Check if host has theme override
+    - Verify theme ID matches stored theme
+    - Refresh terminal session
+  </Accordion>
+  
+  <Accordion title="Colors Look Different">
+    **Possible Causes:**
+    - OS color management
+    - Display calibration
+    - Terminal transparency/blur
+    
+    **Solution:**
+    - Test on multiple displays
+    - Adjust theme colors if needed
+    - Check OS display settings
+  </Accordion>
+</AccordionGroup>
+
+## Theme Inspiration
+
+### Resources
+
+- **iTerm2 Color Schemes:** [iterm2colorschemes.com](https://iterm2colorschemes.com)
+- **Terminal Sexy:** [terminal.sexy](https://terminal.sexy)
+- **Gogh:** [gogh-co.github.io/Gogh](https://gogh-co.github.io/Gogh)
+- **Base16:** [base16-project.github.io](https://base16-project.github.io)
+
+### Design Tools
+
+- **Coolors:** Color palette generator
+- **Adobe Color:** Harmony rules and trends
+- **Paletton:** Color scheme designer
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Host Configuration" icon="gear" href="/guides/host-configuration">
+    Apply themes per host
+  </Card>
+  
+  <Card title="Terminal Settings" icon="sliders" href="/guides/terminal-settings">
+    Configure fonts and appearance
+  </Card>
+  
+  <Card title="Keyword Highlighting" icon="highlighter" href="/guides/keyword-highlighting">
+    Add color to terminal output
+  </Card>
+</CardGroup>

@@ -1,0 +1,481 @@
+---
+title: SFTP Browser
+description: Transfer files with drag-and-drop, edit remotely with the built-in Monaco editor, and manage permissions efficiently
+---
+
+Netcatty includes a powerful SFTP browser for managing files on remote servers. Transfer files with drag-and-drop, edit code with syntax highlighting, and manage permissions—all without leaving the app.
+
+![SFTP Browser](https://raw.githubusercontent.com/binaricat/Netcatty/main/screenshots/gifs/sftpview-with-drag-and-built-in-editor.gif)
+
+## Opening SFTP Browser
+
+### From Vault
+
+Open SFTP for a specific host:
+
+1. Right-click a host in the vault
+2. Select **Open SFTP**
+3. Or double-click with `Alt` key held
+
+The SFTP browser opens in a new pane or tab.
+
+### From Terminal
+
+Open SFTP for the current connection:
+
+- Press `⌘+E` (macOS) / `Ctrl+E` (Windows/Linux)
+- Or click the **Files** icon in the terminal toolbar
+
+Netcatty switches to SFTP view for that session.
+
+### Quick Access
+
+Recent SFTP sessions appear in:
+- **File** menu → **Recent SFTP Sessions**
+- Quick switcher (`⌘+K` / `Ctrl+K`) → type "sftp"
+
+## Interface Layout
+
+The SFTP browser has three main areas:
+
+<Steps>
+  <Step title="Local Pane (Left)">
+    Browse your local filesystem:
+    
+    - Navigate directories
+    - Select files for upload
+    - Create local folders
+    - Preview local files
+
+    Default location: Home directory (`~/` or `%USERPROFILE%`)
+  </Step>
+
+  <Step title="Remote Pane (Right)">
+    Browse the remote server filesystem:
+    
+    - Navigate directories
+    - View file permissions and sizes
+    - Download files
+    - Create remote folders
+
+    Default location: User's home directory on remote server
+  </Step>
+
+  <Step title="Transfer Queue (Bottom)">
+    Monitor active and completed transfers:
+    
+    - Upload/download progress
+    - Transfer speed
+    - Error messages
+    - Cancel active transfers
+  </Step>
+</Steps>
+
+## File Operations
+
+### Upload Files
+
+<Tabs>
+  <Tab title="Drag and Drop">
+    The easiest method:
+
+    1. Select files in the local pane
+    2. Drag them to the remote pane
+    3. Drop in the target directory
+
+    ![Drag File Upload](https://raw.githubusercontent.com/binaricat/Netcatty/main/screenshots/gifs/drag-file-upload.gif)
+
+    <Tip>
+    You can also drag files from your system file manager (Finder, Explorer, Nautilus) directly into the remote pane.
+    </Tip>
+  </Tab>
+
+  <Tab title="Upload Button">
+    Use the toolbar:
+
+    1. Navigate to target directory in remote pane
+    2. Click **Upload** button
+    3. Select files in the file picker
+    4. Click **Open** to start upload
+  </Tab>
+
+  <Tab title="Context Menu">
+    Right-click method:
+
+    1. Select files in the local pane
+    2. Right-click → **Upload to Remote**
+    3. Files transfer to the current remote directory
+  </Tab>
+</Tabs>
+
+### Download Files
+
+<Tabs>
+  <Tab title="Drag and Drop">
+    1. Select files in the remote pane
+    2. Drag them to the local pane
+    3. Drop in the target directory
+  </Tab>
+
+  <Tab title="Download Button">
+    1. Select files in the remote pane
+    2. Click **Download** button
+    3. Choose local destination in the folder picker
+    4. Click **Select Folder** to start download
+  </Tab>
+
+  <Tab title="Context Menu">
+    1. Select files in the remote pane
+    2. Right-click → **Download**
+    3. Files transfer to the current local directory
+  </Tab>
+</Tabs>
+
+### File Management
+
+Other file operations:
+
+| Operation | How To |
+|-----------|--------|
+| **Create folder** | Right-click in pane → **New Folder** |
+| **Rename file/folder** | Right-click → **Rename** → Enter new name |
+| **Delete file/folder** | Right-click → **Delete** → Confirm |
+| **Copy path** | Right-click → **Copy Path** |
+| **Refresh directory** | Click refresh icon or press `F5` |
+
+<Warning>
+**Deletion is permanent**. SFTP delete operations bypass the trash/recycle bin. Always double-check before deleting files.
+</Warning>
+
+## Built-in File Editor
+
+Netcatty includes a Monaco editor (the same editor used in VS Code) for editing remote files:
+
+### Open Files
+
+Open a file in the editor:
+
+- Double-click a file in the remote pane
+- Or right-click → **Edit**
+
+Supported file types:
+- Source code (JavaScript, Python, PHP, Ruby, Go, etc.)
+- Config files (JSON, YAML, TOML, INI, XML)
+- Web files (HTML, CSS, Markdown)
+- Shell scripts (Bash, Zsh)
+- Text files
+
+### Editor Features
+
+<CardGroup cols={2}>
+  <Card title="Syntax Highlighting" icon="code">
+    Automatic language detection with color syntax highlighting for 100+ languages.
+  </Card>
+  <Card title="IntelliSense" icon="lightbulb">
+    Code completion and suggestions for JavaScript, TypeScript, JSON, and more.
+  </Card>
+  <Card title="Find & Replace" icon="magnifying-glass">
+    Search within files with regex support and multi-cursor editing.
+  </Card>
+  <Card title="Auto-Save" icon="floppy-disk">
+    Changes are saved automatically to the remote file when you stop typing.
+  </Card>
+</CardGroup>
+
+### Keyboard Shortcuts
+
+Editor shortcuts:
+
+| Action | macOS | Windows/Linux |
+|--------|-------|---------------|
+| Save file | `⌘+S` | `Ctrl+S` |
+| Find | `⌘+F` | `Ctrl+F` |
+| Replace | `⌘+H` | `Ctrl+H` |
+| Go to line | `⌘+G` | `Ctrl+G` |
+| Comment/uncomment | `⌘+/` | `Ctrl+/` |
+| Format document | `Shift+Alt+F` | `Shift+Alt+F` |
+| Close editor | `⌘+W` | `Ctrl+W` |
+
+<Tip>
+The Monaco editor supports most VS Code keyboard shortcuts. If you're familiar with VS Code, you'll feel right at home.
+</Tip>
+
+## Permissions Management
+
+### View Permissions
+
+File permissions are shown in the remote pane:
+
+```
+-rw-r--r--  1 user group  1024  Jan 15 10:30  config.json
+drwxr-xr-x  2 user group  4096  Jan 15 10:25  scripts/
+```
+
+Permission format: `[type][user][group][other]`
+
+Example: `-rw-r--r--`
+- `-`: Regular file (or `d` for directory, `l` for symlink)
+- `rw-`: User can read and write
+- `r--`: Group can read only
+- `r--`: Others can read only
+
+### Change Permissions (chmod)
+
+Modify file permissions:
+
+1. Right-click a file or folder
+2. Select **Change Permissions**
+3. Enter octal mode (e.g., `755`, `644`) or use checkboxes
+4. Click **Apply**
+
+<Tabs>
+  <Tab title="Common Modes">
+    | Mode | Permissions | Use Case |
+    |------|-------------|----------|
+    | `644` | `rw-r--r--` | Regular files |
+    | `755` | `rwxr-xr-x` | Executable scripts |
+    | `600` | `rw-------` | Private keys |
+    | `700` | `rwx------` | Private directories |
+    | `777` | `rwxrwxrwx` | Public (not recommended) |
+  </Tab>
+
+  <Tab title="Permission Breakdown">
+    Octal mode breakdown:
+
+    - **First digit**: Owner permissions
+    - **Second digit**: Group permissions  
+    - **Third digit**: Other permissions
+
+    Each digit is the sum:
+    - `4` = Read
+    - `2` = Write
+    - `1` = Execute
+
+    Example: `755` = `4+2+1`, `4+0+1`, `4+0+1` = `rwxr-xr-x`
+  </Tab>
+</Tabs>
+
+### Change Owner (chown)
+
+<Note>
+Changing file ownership requires sudo permissions. Configure **Use sudo for SFTP** in the host settings if needed.
+</Note>
+
+1. Right-click a file or folder
+2. Select **Change Owner**
+3. Enter new owner: `user:group`
+4. Click **Apply**
+
+## Sudo Support
+
+For operations requiring elevated permissions:
+
+### Enable Sudo
+
+Configure sudo support in host settings:
+
+```json
+{
+  "sftpSudo": true
+}
+```
+
+1. Edit the host in the vault
+2. Check **Use sudo for SFTP operations**
+3. Save the host configuration
+
+When enabled, Netcatty launches the SFTP subsystem with `sudo`, allowing:
+- Writing to system directories (`/etc`, `/var/www`)
+- Changing ownership of files
+- Modifying permissions on restricted files
+
+<Warning>
+**Security consideration**: Sudo SFTP runs with root privileges. Only enable for trusted servers where you have sudo access.
+</Warning>
+
+### Password Prompt
+
+If your user requires a password for sudo:
+
+1. Enter your password in the SFTP browser prompt
+2. Netcatty caches the password for the session
+3. Subsequent operations use the cached password
+
+## Bookmarks
+
+Quickly access frequently used directories:
+
+### Add Bookmark
+
+1. Navigate to a directory in the remote pane
+2. Click the **Bookmark** icon (star) in the toolbar
+3. Enter a label (e.g., "Web Root", "Logs")
+4. Click **Save**
+
+### Use Bookmarks
+
+Access bookmarked directories:
+
+1. Click the **Bookmarks** dropdown
+2. Select a bookmark
+3. Remote pane navigates to that directory
+
+Bookmarks are saved per-host in the host configuration:
+
+```json
+{
+  "sftpBookmarks": [
+    { "id": "bm1", "path": "/var/www/html", "label": "Web Root" },
+    { "id": "bm2", "path": "/var/log", "label": "System Logs" }
+  ]
+}
+```
+
+## File Encoding
+
+Configure filename encoding for servers with non-UTF-8 filenames:
+
+```json
+{
+  "sftpEncoding": "gbk"
+}
+```
+
+Supported encodings:
+- `utf-8` (default)
+- `gbk` (Chinese)
+- `big5` (Traditional Chinese)
+- `shift_jis` (Japanese)
+- `euc-kr` (Korean)
+- `iso-8859-1` (Latin-1)
+
+<Note>
+Only change encoding if you see garbled filenames in the SFTP browser. Most modern systems use UTF-8.
+</Note>
+
+## Transfer Queue
+
+### Monitor Transfers
+
+The transfer queue shows:
+
+- **Active transfers**: Current uploads/downloads with progress bars
+- **Completed transfers**: Recently finished operations
+- **Failed transfers**: Errors with retry option
+
+### Transfer Controls
+
+| Action | How To |
+|--------|--------|
+| **Pause transfer** | Click pause icon |
+| **Resume transfer** | Click resume icon |
+| **Cancel transfer** | Click X icon |
+| **Retry failed** | Click retry icon |
+| **Clear completed** | Click **Clear** button |
+
+### Concurrent Transfers
+
+Netcatty supports simultaneous file transfers:
+
+- Multiple files in one operation transfer in parallel
+- Different SFTP sessions can transfer independently
+- Default concurrency: 4 simultaneous transfers
+
+## Keyboard Shortcuts
+
+SFTP browser shortcuts:
+
+| Action | macOS | Windows/Linux |
+|--------|-------|---------------|
+| Open SFTP | `⌘+E` | `Ctrl+E` |
+| Refresh | `⌘+R` | `F5` |
+| Go to parent directory | `Backspace` | `Backspace` |
+| Upload | `⌘+U` | `Ctrl+U` |
+| Download | `⌘+D` | `Ctrl+D` |
+| New folder | `⌘+Shift+N` | `Ctrl+Shift+N` |
+| Rename | `F2` | `F2` |
+| Delete | `Delete` | `Delete` |
+| Select all | `⌘+A` | `Ctrl+A` |
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="SFTP Connection Failed">
+    **Cause**: SSH connection doesn't support SFTP subsystem.
+
+    **Solutions**:
+    - Verify SFTP subsystem is enabled on the server: `grep Subsystem /etc/ssh/sshd_config`
+    - Should show: `Subsystem sftp /usr/lib/openssh/sftp-server`
+    - Restart SSH service after enabling: `sudo systemctl restart sshd`
+  </Accordion>
+
+  <Accordion title="Permission Denied Errors">
+    **Cause**: Insufficient permissions to access files/directories.
+
+    **Solutions**:
+    - Check file permissions with `ls -la`
+    - Enable **Use sudo for SFTP** in host settings if you have sudo access
+    - Verify your user is in the correct group: `groups`
+    - Contact server administrator for permission changes
+  </Accordion>
+
+  <Accordion title="Slow Transfers">
+    **Cause**: Network latency, server load, or large files.
+
+    **Solutions**:
+    - Check network speed: `ping hostname`
+    - Try compressing large files before transfer
+    - Use compression for uploads (see [Compressed Uploads](/advanced/troubleshooting#sftp-performance))
+    - Consider rsync for large directory syncs instead of SFTP
+  </Accordion>
+
+  <Accordion title="Editor Won't Open File">
+    **Cause**: File too large or unsupported binary format.
+
+    **Solutions**:
+    - Check file size (editor limit is typically 10MB)
+    - Verify file is text-based: `file filename`
+    - Use `Download` and edit locally for very large files
+    - Binary files cannot be edited in the Monaco editor
+  </Accordion>
+
+  <Accordion title="Garbled Filenames">
+    **Cause**: Character encoding mismatch.
+
+    **Solution**: Set `sftpEncoding` in host configuration to match the server's locale (e.g., `gbk`, `big5`, `shift_jis`).
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Bookmarks" icon="bookmark">
+    Create bookmarks for frequently accessed directories like `/var/www`, `/etc`, `/var/log` to navigate quickly.
+  </Card>
+  <Card title="Enable Sudo Carefully" icon="shield">
+    Only enable sudo SFTP for trusted servers. Review changes before saving to system directories.
+  </Card>
+  <Card title="Verify Before Delete" icon="trash">
+    Double-check file paths before deleting. SFTP deletions are immediate and permanent.
+  </Card>
+  <Card title="Use Editor for Quick Edits" icon="pen">
+    The built-in editor is perfect for config tweaks and small script changes. For major editing, use a local IDE with git.
+  </Card>
+</CardGroup>
+
+## Related Topics
+
+<CardGroup cols={2}>
+  <Card title="Host Configuration" icon="gear" href="/guides/host-configuration">
+    Configure sudo SFTP and encoding options
+  </Card>
+  <Card title="File Transfer Troubleshooting" icon="circle-question" href="/advanced/troubleshooting">
+    Solve SFTP connection and transfer issues
+  </Card>
+  <Card title="Authentication" icon="key" href="/guides/authentication">
+    Set up SSH key authentication for SFTP
+  </Card>
+  <Card title="Terminal Workspaces" icon="window-restore" href="/features/terminal-workspaces">
+    Manage SFTP browser alongside terminal sessions
+  </Card>
+</CardGroup>

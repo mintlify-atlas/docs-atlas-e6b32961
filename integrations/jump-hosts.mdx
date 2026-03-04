@@ -1,0 +1,669 @@
+---
+title: Jump Hosts & Bastion Servers
+description: Configure multi-hop SSH connections through jump hosts, bastion servers, and HTTP/SOCKS5 proxies
+---
+
+Netcatty supports complex SSH connection routing through jump hosts (bastion servers) and network proxies.
+
+## Connection Types
+
+### Direct Connection
+
+Simple SSH connection directly to the target host.
+
+```
+Your Computer → Target Server
+```
+
+**Use case:** Server is directly accessible on the internet or local network.
+
+### Jump Host (Single Hop)
+
+Connect through one intermediate server.
+
+```
+Your Computer → Jump Host → Target Server
+```
+
+**Use case:** Target server is in a private network, accessible only through a bastion.
+
+### Multi-Hop Jump Chain
+
+Connect through multiple intermediate servers.
+
+```
+Your Computer → Jump 1 → Jump 2 → Target Server
+```
+
+**Use case:** Complex network topology with multiple security zones.
+
+### Proxy Connection
+
+Route connection through an HTTP or SOCKS5 proxy.
+
+```
+Your Computer → Proxy → Target Server
+```
+
+**Use case:** Corporate networks requiring proxy authentication.
+
+### Proxy + Jump Host
+
+Combine proxy and jump host for maximum flexibility.
+
+```
+Your Computer → Proxy → Jump Host → Target Server
+```
+
+**Use case:** Corporate proxy to reach external bastion, then private servers.
+
+## Host Chain Configuration
+
+Netcatty uses the `hostChain` field to define jump host sequences.
+
+### Data Structure
+
+```typescript
+interface HostChainConfig {
+  hostIds: string[];  // Array of host IDs in order
+                      // First ID = closest to client (initial jump)
+                      // Last ID = closest to target (final jump)
+}
+```
+
+### Example
+
+```typescript
+// Target server configuration
+const targetHost: Host = {
+  id: 'target-id',
+  label: 'Production Server',
+  hostname: '10.0.2.50',
+  username: 'deploy',
+  port: 22,
+  hostChain: {
+    hostIds: ['bastion-id', 'gateway-id']
+  }
+};
+
+// Jump host 1 (bastion)
+const bastion: Host = {
+  id: 'bastion-id',
+  label: 'Public Bastion',
+  hostname: 'bastion.example.com',
+  username: 'jumpuser',
+  port: 22
+};
+
+// Jump host 2 (gateway)
+const gateway: Host = {
+  id: 'gateway-id',
+  label: 'Internal Gateway',
+  hostname: '10.0.1.10',
+  username: 'admin',
+  port: 22
+};
+
+// Connection path:
+// Your PC → bastion.example.com → 10.0.1.10 → 10.0.2.50
+```
+
+## Setting Up Jump Hosts
+
+### Method 1: Host Details Panel
+
+1. Open the host you want to connect to
+2. Scroll to **Jump Hosts** section
+3. Click **Add Jump Host**
+4. Select the intermediate server from the dropdown
+5. For multi-hop:
+   - Click **Add Jump Host** again
+   - Select the next server in the chain
+   - Order matters: first added = first hop
+6. Click **Save**
+
+### Method 2: During Host Creation
+
+1. Click **New Host**
+2. Fill in target server details
+3. In **Jump Hosts** section, add intermediaries
+4. Order from left to right = connection order
+5. Click **Create**
+
+### Method 3: SSH Config Import
+
+Import existing SSH config with ProxyJump:
+
+```
+Host production
+    HostName 10.0.2.50
+    User deploy
+    ProxyJump bastion,gateway
+
+Host bastion
+    HostName bastion.example.com
+    User jumpuser
+
+Host gateway
+    HostName 10.0.1.10
+    User admin
+```
+
+Netcatty automatically converts ProxyJump to `hostChain`.
+
+## Proxy Configuration
+
+Netcatty supports HTTP CONNECT and SOCKS5 proxies.
+
+### Data Structure
+
+```typescript
+interface ProxyConfig {
+  type: 'http' | 'socks5';
+  host: string;       // Proxy server hostname/IP
+  port: number;       // Proxy server port
+  username?: string;  // Optional proxy authentication
+  password?: string;  // Optional proxy authentication
+}
+```
+
+### HTTP Proxy
+
+Used for HTTP CONNECT tunneling:
+
+```typescript
+const host: Host = {
+  id: 'server-id',
+  hostname: 'server.example.com',
+  username: 'admin',
+  port: 22,
+  proxyConfig: {
+    type: 'http',
+    host: 'proxy.company.com',
+    port: 8080,
+    username: 'proxyuser',  // If proxy requires auth
+    password: 'proxypass'
+  }
+};
+```
+
+**How it works:**
+1. Connect to proxy.company.com:8080
+2. Send HTTP CONNECT request for server.example.com:22
+3. Proxy establishes tunnel
+4. SSH connection proceeds through tunnel
+
+### SOCKS5 Proxy
+
+Used for SOCKS5 tunneling:
+
+```typescript
+const host: Host = {
+  id: 'server-id',
+  hostname: 'server.example.com',
+  username: 'admin',
+  port: 22,
+  proxyConfig: {
+    type: 'socks5',
+    host: 'socks-proxy.example.com',
+    port: 1080,
+    username: 'socksuser',  // If SOCKS5 requires auth
+    password: 'sockspass'
+  }
+};
+```
+
+**How it works:**
+1. Connect to SOCKS5 proxy
+2. Perform SOCKS5 handshake
+3. Request connection to target through proxy
+4. SSH connection proceeds through SOCKS5 tunnel
+
+### Setting Up Proxies in GUI
+
+1. Open **Host Details** for your target server
+2. Scroll to **Proxy** section
+3. Click **Enable Proxy**
+4. Select proxy type: HTTP or SOCKS5
+5. Enter proxy details:
+   - **Host**: Proxy server address
+   - **Port**: Proxy server port
+   - **Username** (optional): Proxy authentication username
+   - **Password** (optional): Proxy authentication password
+6. Click **Save**
+
+## Common Scenarios
+
+### Scenario 1: AWS Bastion Host
+
+**Network:**
+```
+Internet → Public Bastion (EC2) → Private Subnet (RDS, EC2)
+```
+
+**Configuration:**
+
+1. Create bastion host entry:
+   ```typescript
+   {
+     label: 'AWS Bastion',
+     hostname: 'ec2-xx-xxx-xxx-xx.compute.amazonaws.com',
+     username: 'ec2-user',
+     port: 22,
+     identityFileId: 'aws-key-id'
+   }
+   ```
+
+2. Create private server entry:
+   ```typescript
+   {
+     label: 'Private Database Server',
+     hostname: '10.0.1.50',
+     username: 'admin',
+     port: 22,
+     hostChain: {
+       hostIds: ['bastion-id']
+     }
+   }
+   ```
+
+### Scenario 2: Corporate Network with DMZ
+
+**Network:**
+```
+Internet → Corporate VPN → DMZ Bastion → Internal Network
+```
+
+**Configuration:**
+
+1. Bastion in DMZ:
+   ```typescript
+   {
+     label: 'DMZ Bastion',
+     hostname: 'bastion.dmz.company.com',
+     username: 'jumpuser',
+     port: 22
+   }
+   ```
+
+2. Internal server:
+   ```typescript
+   {
+     label: 'Internal App Server',
+     hostname: '192.168.10.100',
+     username: 'deploy',
+     port: 22,
+     hostChain: {
+       hostIds: ['dmz-bastion-id']
+     }
+   }
+   ```
+
+### Scenario 3: Multi-Tier Jump (3 Hops)
+
+**Network:**
+```
+Internet → Public Bastion → Security Zone Gateway → Production Server
+```
+
+**Configuration:**
+
+1. Public bastion:
+   ```typescript
+   {
+     label: 'Public Bastion',
+     hostname: 'bastion.example.com',
+     username: 'jumpuser',
+     port: 22
+   }
+   ```
+
+2. Security gateway:
+   ```typescript
+   {
+     label: 'Security Gateway',
+     hostname: '10.0.1.10',
+     username: 'gateway',
+     port: 22
+   }
+   ```
+
+3. Production server:
+   ```typescript
+   {
+     label: 'Production DB',
+     hostname: '10.0.2.50',
+     username: 'dbadmin',
+     port: 22,
+     hostChain: {
+       hostIds: ['bastion-id', 'gateway-id']
+     }
+   }
+   ```
+
+**Connection path:**
+```
+Your PC
+  → bastion.example.com (public Internet)
+    → 10.0.1.10 (through bastion)
+      → 10.0.2.50 (through gateway)
+```
+
+### Scenario 4: Corporate Proxy + Bastion
+
+**Network:**
+```
+Your PC → Corporate HTTP Proxy → Internet → Cloud Bastion → Cloud VMs
+```
+
+**Configuration:**
+
+1. Cloud bastion (with proxy):
+   ```typescript
+   {
+     label: 'Cloud Bastion',
+     hostname: 'bastion.cloud.example.com',
+     username: 'jumpuser',
+     port: 22,
+     proxyConfig: {
+       type: 'http',
+       host: 'proxy.company.com',
+       port: 8080,
+       username: 'myusername',
+       password: 'mypassword'
+     }
+   }
+   ```
+
+2. Cloud VM (through bastion):
+   ```typescript
+   {
+     label: 'Cloud App Server',
+     hostname: '10.20.30.40',
+     username: 'ubuntu',
+     port: 22,
+     hostChain: {
+       hostIds: ['cloud-bastion-id']
+     }
+   }
+   ```
+
+**Connection path:**
+```
+Your PC
+  → proxy.company.com:8080 (HTTP CONNECT)
+    → bastion.cloud.example.com (Internet)
+      → 10.20.30.40 (cloud private network)
+```
+
+### Scenario 5: SOCKS5 Proxy for Remote Access
+
+**Network:**
+```
+Your PC → SOCKS5 Proxy → Remote Network
+```
+
+**Configuration:**
+
+```typescript
+{
+  label: 'Remote Server',
+  hostname: '192.168.100.50',
+  username: 'admin',
+  port: 22,
+  proxyConfig: {
+    type: 'socks5',
+    host: 'socks.vpn.example.com',
+    port: 1080
+  }
+}
+```
+
+## Authentication Through Jumps
+
+### Jump Host Authentication
+
+Each jump host in the chain uses its own authentication:
+
+- **SSH Key**: Specify `identityFileId` for each jump host
+- **Password**: Enter password for each jump host when connecting
+- **Agent Forwarding**: Enable on jump hosts to forward your local SSH agent
+
+### Example: Different Keys per Hop
+
+```typescript
+// Bastion uses personal key
+const bastion: Host = {
+  id: 'bastion-id',
+  label: 'Personal Bastion',
+  hostname: 'bastion.example.com',
+  username: 'myuser',
+  port: 22,
+  identityFileId: 'personal-key-id'
+};
+
+// Production server uses deploy key
+const production: Host = {
+  id: 'prod-id',
+  label: 'Production Server',
+  hostname: '10.0.1.50',
+  username: 'deploy',
+  port: 22,
+  identityFileId: 'deploy-key-id',
+  hostChain: {
+    hostIds: ['bastion-id']
+  }
+};
+```
+
+**What happens:**
+1. Netcatty connects to bastion using personal-key-id
+2. Once bastion connection succeeds, Netcatty connects to production using deploy-key-id
+3. Both keys are loaded from Netcatty's keychain
+
+### SSH Agent Forwarding
+
+Enable agent forwarding to use your local SSH keys on jump hosts:
+
+1. Open jump host details
+2. Enable **Agent Forwarding**
+3. Jump host can now use your local keys for onward connections
+
+**Security warning:** Only enable agent forwarding on trusted jump hosts.
+
+## Circular Reference Detection
+
+Netcatty prevents infinite loops in jump host chains.
+
+**Example of circular reference:**
+
+```typescript
+// Server A jumps through Server B
+const serverA: Host = {
+  hostChain: { hostIds: ['server-b-id'] }
+};
+
+// Server B jumps through Server A (circular!)
+const serverB: Host = {
+  hostChain: { hostIds: ['server-a-id'] }
+};
+```
+
+**Detection:**
+- During SSH config import
+- When saving host details
+- Before initiating connection
+
+**Error message:**
+```
+Circular reference detected in jump host chain for "Server A"
+```
+
+The chain is rejected and you must fix the configuration.
+
+## Connection Troubleshooting
+
+### Connection Timeout at Jump Host
+
+**Symptoms:** Connection hangs when reaching jump host
+
+**Possible causes:**
+- Jump host is down or unreachable
+- Firewall blocking SSH port
+- Wrong hostname/IP for jump host
+- Authentication failed on jump host
+
+**Debug:**
+1. Test jump host directly: Connect without target server
+2. Check jump host logs: `sudo journalctl -u sshd -f`
+3. Verify network path: `ping` or `traceroute` to jump host
+4. Try from command line: `ssh -J jumphost targethost`
+
+### Authentication Failed on Target
+
+**Symptoms:** Jump host connects, but target authentication fails
+
+**Possible causes:**
+- Wrong username for target server
+- SSH key not accepted by target
+- Agent forwarding not enabled
+- Target server AllowUsers/DenyUsers restrictions
+
+**Debug:**
+1. Test target from jump host: SSH to jump host, then SSH to target manually
+2. Check target's authorized_keys: `cat ~/.ssh/authorized_keys`
+3. Enable agent forwarding on jump host
+4. Check target's sshd_config for AllowUsers
+
+### Proxy Connection Failed
+
+**Symptoms:** Cannot establish proxy connection
+
+**Possible causes:**
+- Proxy server down or unreachable
+- Wrong proxy host/port
+- Proxy authentication required but not provided
+- Proxy doesn't support CONNECT method (HTTP) or SOCKS5
+
+**Debug:**
+1. Test proxy: `curl -x http://proxy:8080 http://example.com`
+2. Verify proxy type: Some proxies only support HTTP, not CONNECT
+3. Check proxy logs if accessible
+4. Try direct connection without proxy to isolate issue
+
+### Multi-Hop Performance Issues
+
+**Symptoms:** Connection works but is very slow
+
+**Possible causes:**
+- Network latency compounded across hops
+- Jump hosts under high load
+- Bandwidth limitations
+
+**Solutions:**
+- Reduce number of hops if possible
+- Use faster jump hosts
+- Enable SSH compression: Add to SSH config or connection options
+- Consider VPN instead of multiple SSH hops
+
+## Best Practices
+
+### Security
+
+1. **Dedicated Jump Hosts**: Use hardened, minimal-install servers as jump hosts
+2. **Audit Logs**: Enable detailed logging on jump hosts: `LogLevel VERBOSE` in sshd_config
+3. **Principle of Least Privilege**: Jump host users should only have access needed for forwarding
+4. **Key Rotation**: Regularly rotate SSH keys used for jump host access
+5. **MFA**: Enable multi-factor authentication on jump hosts if possible
+6. **Disable Direct Root**: Prevent root login on jump hosts: `PermitRootLogin no`
+
+### Performance
+
+1. **Connection Multiplexing**: SSH will reuse connections when possible
+2. **Persistent Connections**: Keep jump host connections alive with `ServerAliveInterval`
+3. **Geographic Proximity**: Place jump hosts near target servers to minimize latency
+4. **Limit Hops**: Avoid more than 2-3 hops when possible
+
+### Management
+
+1. **Descriptive Labels**: Use clear names like "AWS Bastion (us-east-1)" instead of "Jump 1"
+2. **Document Network Topology**: Keep a diagram of your jump host infrastructure
+3. **Test Regularly**: Verify jump host chains still work, especially after network changes
+4. **Monitor Jump Hosts**: Track connection counts, failed auth attempts, system resources
+
+### Organization
+
+1. **Group by Jump Host**: Create groups for servers sharing the same bastion
+2. **Naming Convention**: Use prefixes like `[via-bastion]` in host labels
+3. **Tags**: Tag servers with their jump host for easy filtering
+
+## SSH Config Integration
+
+Netcatty's host chains map to OpenSSH ProxyJump:
+
+**Netcatty:**
+```typescript
+{
+  hostname: '10.0.2.50',
+  hostChain: {
+    hostIds: ['bastion-id', 'gateway-id']
+  }
+}
+```
+
+**Equivalent SSH config:**
+```
+Host production
+    HostName 10.0.2.50
+    ProxyJump bastion,gateway
+
+Host bastion
+    HostName bastion.example.com
+
+Host gateway
+    HostName 10.0.1.10
+```
+
+**Equivalent command line:**
+```bash
+ssh -J bastion,gateway production
+```
+
+If you use managed SSH config sources, Netcatty automatically converts between formats.
+
+## Alternatives to Jump Hosts
+
+### VPN
+
+Instead of SSH jump hosts, use a VPN:
+
+**Pros:**
+- All servers appear on local network
+- No need for complex jump chains
+- Works for non-SSH protocols
+
+**Cons:**
+- Requires VPN software and configuration
+- May be blocked by corporate networks
+- Potential security concerns with full network access
+
+### Port Forwarding
+
+Use SSH local port forwarding:
+
+```bash
+ssh -L 2222:target:22 bastion
+ssh -p 2222 localhost
+```
+
+Netcatty's jump host feature automates this process.
+
+### Tailscale / Zerotier
+
+Mesh VPN solutions for seamless private networking:
+
+- Direct peer-to-peer connections
+- No central bastion needed
+- Works across NAT/firewalls
+
+Netcatty can connect to Tailscale/Zerotier IPs directly without jump hosts.

@@ -1,0 +1,262 @@
+---
+title: Multi-Protocol Support
+description: Connect to servers using SSH, Telnet, Mosh, Serial, or local terminal sessions
+icon: network
+---
+
+Netcatty provides flexible connectivity options beyond standard SSH, allowing you to connect to legacy equipment, embedded systems, and local shells.
+
+## Supported Protocols
+
+Netcatty supports five connection types:
+
+- **SSH** - Secure Shell connections (default)
+- **Telnet** - Unencrypted text protocol for legacy devices
+- **Mosh** - Mobile Shell for unreliable networks
+- **Serial** - Direct serial port connections
+- **Local** - Local terminal sessions
+
+## Multi-Protocol Configuration
+
+Each host can be configured with multiple protocols, allowing you to quickly switch between connection types.
+
+### Per-Protocol Settings
+
+In the host configuration, each protocol can have its own settings:
+
+```typescript
+protocols: [
+  {
+    protocol: 'ssh',
+    port: 22,
+    enabled: true,
+    theme: 'dracula'
+  },
+  {
+    protocol: 'telnet',
+    port: 23,
+    enabled: true,
+    theme: 'monokai'
+  }
+]
+```
+
+### Quick Protocol Switching
+
+When opening a host connection:
+
+1. If only one protocol is enabled, it connects automatically
+2. If multiple protocols are enabled, you'll see a protocol selection dialog
+3. The last-used protocol is remembered for quick access
+
+## SSH Protocol
+
+The primary and most secure protocol for remote connections.
+
+### Features
+
+- Public key authentication (RSA, ECDSA, ED25519)
+- Password authentication
+- Certificate-based authentication
+- SSH agent forwarding
+- Jump host / bastion support
+- SOCKS5 and HTTP proxy support
+- Port forwarding (local, remote, dynamic)
+
+### Configuration Options
+
+Key settings defined in `domain/models.ts:44-52`:
+
+- `port` - SSH port (default: 22)
+- `agentForwarding` - Enable SSH agent forwarding
+- `keepaliveInterval` - Seconds between keepalive packets (0 = disabled)
+- `legacyAlgorithms` - Enable older algorithms for network equipment
+
+## Telnet Protocol
+
+Unencrypted text-based protocol for legacy network equipment.
+
+<Warning>
+Telnet transmits credentials and data in plain text. Use only on trusted networks or for equipment that doesn't support SSH.
+</Warning>
+
+### Configuration
+
+Telnet-specific settings:
+
+- `telnetPort` - Telnet port (default: 23)
+- `telnetUsername` - Telnet login username
+- `telnetPassword` - Telnet login password
+- `telnetEnabled` - Enable Telnet for this host
+
+### Use Cases
+
+- Legacy network switches and routers
+- Embedded systems without SSH support
+- Serial-over-IP devices
+- Testing and debugging network services
+
+## Mosh Protocol
+
+Mobile Shell (Mosh) provides resilient connections over unreliable networks.
+
+### Features
+
+- Survives IP address changes (WiFi to cellular)
+- Instant local echo for better responsiveness
+- Predictive text for low-latency feel
+- Uses UDP for better roaming support
+
+### Configuration
+
+Mosh settings:
+
+- `moshEnabled` - Enable Mosh for this host
+- `moshServerPath` - Custom path to mosh-server (e.g., `/usr/local/bin/mosh-server`)
+
+### Requirements
+
+- Mosh client installed locally
+- Mosh server installed on remote host
+- UDP ports 60000-61000 accessible
+- SSH access (Mosh uses SSH for initial handshake)
+
+### Installation
+
+**macOS:**
+```bash
+brew install mosh
+```
+
+**Ubuntu/Debian:**
+```bash
+sudo apt install mosh
+```
+
+**Remote server:**
+```bash
+sudo apt install mosh  # Ubuntu/Debian
+sudo yum install mosh  # CentOS/RHEL
+```
+
+## Serial Protocol
+
+Direct serial port connections for embedded systems, console servers, and hardware devices.
+
+### Serial Configuration
+
+Defined in `domain/models.ts:28-41`:
+
+```typescript
+serialConfig: {
+  path: '/dev/ttyUSB0',    // Serial port path
+  baudRate: 115200,        // Baud rate
+  dataBits: 8,             // Data bits (5, 6, 7, 8)
+  stopBits: 1,             // Stop bits (1, 1.5, 2)
+  parity: 'none',          // Parity (none, even, odd, mark, space)
+  flowControl: 'none',     // Flow control (none, xon/xoff, rts/cts)
+  localEcho: false,        // Force local echo
+  lineMode: false          // Buffer input until Enter
+}
+```
+
+### Common Port Paths
+
+**Linux:**
+- `/dev/ttyUSB0`, `/dev/ttyUSB1` - USB serial adapters
+- `/dev/ttyACM0` - USB CDC devices (Arduino, etc.)
+- `/dev/ttyS0` - Built-in serial ports
+
+**macOS:**
+- `/dev/cu.usbserial-*` - USB serial adapters
+- `/dev/cu.SLAB_USBtoUART` - Silicon Labs USB-to-UART
+
+**Windows:**
+- `COM1`, `COM2`, etc. - Serial ports
+
+### Common Baud Rates
+
+- 9600 - Legacy equipment, slow devices
+- 19200 - Networking equipment
+- 38400 - Industrial devices
+- 57600 - Embedded systems
+- 115200 - Modern devices (most common)
+- 230400, 460800, 921600 - High-speed devices
+
+### Use Cases
+
+- Router/switch console access
+- Embedded Linux systems (Raspberry Pi, etc.)
+- Microcontroller debugging
+- Industrial equipment
+- Serial console servers
+
+## Local Terminal
+
+Local shell sessions on your machine.
+
+### Configuration
+
+Local terminal settings in Terminal Settings:
+
+- `localShell` - Path to shell executable (empty = system default)
+- `localStartDir` - Starting directory (empty = home directory)
+
+### Default Shells
+
+**macOS:** `/bin/zsh` (macOS 10.15+) or `/bin/bash`  
+**Linux:** `/bin/bash`, `/bin/zsh`, `/usr/bin/fish`  
+**Windows:** `powershell.exe`, `cmd.exe`
+
+### Environment Variables
+
+Local terminals inherit your system environment. Custom environment variables can be set per-host in the `environmentVariables` field.
+
+## Protocol Switching
+
+You can switch protocols without recreating the host:
+
+1. Open host details panel
+2. Navigate to **Protocols** section
+3. Enable/disable protocols and configure settings
+4. When connecting, choose the desired protocol
+
+The `ProtocolSelectDialog` component (components/ProtocolSelectDialog.tsx:1) handles protocol selection when multiple protocols are enabled.
+
+## Implementation Details
+
+Protocol handling is implemented in:
+
+- **SSH:** `electron/bridges/sshBridge.cjs` - SSH connection management
+- **Telnet/Mosh/Local:** `electron/bridges/terminalBridge.cjs` - PTY-based connections
+- **Serial:** Uses `serialport` package via terminalBridge
+- **Models:** `domain/models.ts:26` - Protocol types and configuration
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Security">
+    - Always prefer SSH over Telnet when possible
+    - Use Mosh over SSH on unreliable networks, not as a replacement for secure networks
+    - Encrypt serial console connections with SSH tunnels when accessing over network
+    - Keep credentials in Keychain, not individual host configs
+  </Accordion>
+
+  <Accordion title="Network Equipment">
+    - Use Telnet for legacy switches/routers without SSH
+    - Enable legacy algorithms for older network equipment (see [Legacy Algorithms](/advanced/legacy-algorithms))
+    - Use serial console for initial configuration or recovery
+    - Set appropriate timeout values for slow devices
+  </Accordion>
+
+  <Accordion title="Performance">
+    - Use Mosh for high-latency or unstable connections
+    - Adjust serial baud rate to match device capabilities
+    - Enable compression for slow network links
+    - Use local terminal for frequent command-line work
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+See the [Troubleshooting Guide](/advanced/troubleshooting) for common protocol-specific issues.

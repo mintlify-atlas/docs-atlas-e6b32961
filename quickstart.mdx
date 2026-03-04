@@ -1,80 +1,523 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quick Start Guide
+description: Get started with Netcatty - add your first host and connect to remote servers
 ---
 
-## Get started in three steps
+# Quick Start Guide
 
-Get your documentation site running locally and make your first customization.
-
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+This guide will walk you through setting up Netcatty and connecting to your first remote server. You'll learn how to manage hosts, use the terminal, transfer files with SFTP, and set up port forwarding.
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  If you haven't installed Netcatty yet, see the [Installation Guide](/installation) first.
 </Note>
+
+---
+
+## Understanding the Interface
+
+When you first launch Netcatty, you'll see the **Vault** - the central hub for managing your SSH hosts, keys, and connections.
+
+<img src="/screenshots/main-window-dark.png" alt="Netcatty Main Interface" />
+
+The interface consists of:
+
+- **Sidebar** - Quick access to Hosts, SSH Keys, Snippets, Port Forwarding, and Logs
+- **Vault Views** - Switch between Grid, List, and Tree views to organize your hosts
+- **Search Bar** - Quickly filter and find hosts
+- **Terminal Workspace** - Tabbed interface for active sessions
+
+---
+
+## Adding Your First Host
+
+<Steps>
+  <Step title="Open the Quick Connect dialog">
+    Click the **+ New Host** button in the Vault or use the keyboard shortcut:
+    - **macOS**: `⌘ + N`
+    - **Windows/Linux**: `Ctrl + N`
+  </Step>
+
+  <Step title="Enter connection details">
+    Fill in the host information:
+    
+    ```
+    Label: My Production Server
+    Hostname: example.com (or IP address like 192.168.1.100)
+    Port: 22 (default SSH port)
+    Username: your-username
+    ```
+    
+    <Note>
+      **Quick Connect tip**: You can paste SSH URLs directly like `ssh://user@host:port` and Netcatty will parse them automatically.
+    </Note>
+  </Step>
+
+  <Step title="Choose authentication method">
+    Select how you want to authenticate:
+    
+    **Password Authentication:**
+    - Select "Password" as the auth method
+    - Enter your password
+    - Check "Save password" to store it securely
+    
+    **SSH Key Authentication:**
+    - Select "SSH Key" as the auth method
+    - Choose an existing key from the dropdown, or
+    - Click "Manage Keys" to generate or import a new key
+    
+    **Certificate Authentication:**
+    - Select "Certificate"
+    - Choose your certificate from the Keychain
+  </Step>
+
+  <Step title="Optional: Organize with groups">
+    Keep your hosts organized by assigning them to groups:
+    
+    - Enter a group name like `Production/Web Servers`
+    - Use `/` to create nested groups (e.g., `Work/Clients/ACME Corp`)
+    - Add tags for additional categorization
+  </Step>
+
+  <Step title="Save and connect">
+    Click **Save & Connect** to add the host and immediately open a terminal session, or click **Save** to add it to your vault without connecting.
+  </Step>
+</Steps>
+
+---
+
+## Managing SSH Keys
+
+Netcatty includes a built-in SSH key manager for generating and organizing your keys.
+
+<Steps>
+  <Step title="Open the Keychain">
+    Click **Keychain** in the sidebar or press:
+    - **macOS**: `⌘ + Shift + K`
+    - **Windows/Linux**: `Ctrl + Shift + K`
+  </Step>
+
+  <Step title="Generate a new SSH key">
+    Click **+ Generate Key** and configure:
+    
+    - **Label**: `My Production Key`
+    - **Type**: Choose from RSA, ECDSA, or ED25519 (recommended)
+    - **Key Size**: 4096 bits for RSA, 256/384/521 for ECDSA
+    - **Passphrase**: Optional but recommended for security
+    
+    Click **Generate** and the key will be created.
+  </Step>
+
+  <Step title="Import an existing key">
+    To use existing SSH keys:
+    
+    1. Click **+ Import Key**
+    2. Select your private key file (usually `~/.ssh/id_rsa` or `~/.ssh/id_ed25519`)
+    3. Enter the passphrase if the key is encrypted
+    4. Give it a descriptive label
+  </Step>
+
+  <Step title="Use the key with a host">
+    When adding or editing a host:
+    1. Set authentication method to "SSH Key"
+    2. Select your key from the dropdown
+    3. The key will be used for all connections to this host
+  </Step>
+</Steps>
+
+---
+
+## Connecting to a Remote Server
+
+<Steps>
+  <Step title="Connect from the Vault">
+    There are several ways to connect:
+    
+    - **Double-click** a host card in Grid view
+    - **Click** a host in List or Tree view and press Enter
+    - **Right-click** and select "Connect"
+    - **Search** for the host and press Enter
+  </Step>
+
+  <Step title="Verify host key (first connection)">
+    On first connection, you'll see a host key verification dialog:
+    
+    ```
+    The authenticity of host 'example.com (192.168.1.100)' can't be established.
+    ED25519 key fingerprint is SHA256:abcd1234...
+    Are you sure you want to continue connecting?
+    ```
+    
+    <Warning>
+      Always verify the fingerprint with your server administrator before accepting. This prevents man-in-the-middle attacks.
+    </Warning>
+    
+    Click **Accept & Connect** to save the host key and continue.
+  </Step>
+
+  <Step title="Work in the terminal">
+    Once connected, you have access to the full terminal with these features:
+    
+    - **Copy/Paste**: Standard shortcuts work (⌘+C/⌘+V or Ctrl+Shift+C/Ctrl+Shift+V)
+    - **Search**: Press ⌘+F (Ctrl+Shift+F) to search terminal output
+    - **Select All**: ⌘+A (Ctrl+Shift+A)
+    - **Clear Buffer**: ⌘+⌃+K (Ctrl+Shift+K)
+  </Step>
+</Steps>
+
+---
+
+## Working with Split Terminals
+
+Netcatty's split view lets you monitor multiple servers or run parallel tasks.
+
+<Steps>
+  <Step title="Split horizontally or vertically">
+    While in a terminal session:
+    
+    **Split Horizontal** (side-by-side):
+    - **macOS**: `⌘ + D`
+    - **Windows/Linux**: `Ctrl + Shift + D`
+    
+    **Split Vertical** (top and bottom):
+    - **macOS**: `⌘ + Shift + D`
+    - **Windows/Linux**: `Ctrl + Shift + E`
+  </Step>
+
+  <Step title="Navigate between panes">
+    Move focus between split panes:
+    - **macOS**: `⌘ + ⌥ + Arrow Keys`
+    - **Windows/Linux**: `Ctrl + Alt + Arrow Keys`
+  </Step>
+
+  <Step title="Connect different hosts">
+    Each split pane can connect to a different host:
+    1. Focus on a pane
+    2. Use Quick Switcher (⌘+J or Ctrl+J) to select a host
+    3. The connection opens in the focused pane
+  </Step>
+</Steps>
+
+<img src="/screenshots/split-window.png" alt="Split Terminal Windows" />
+
+---
+
+## Using SFTP for File Transfers
+
+Netcatty includes a powerful dual-pane SFTP browser for transferring files between local and remote systems.
+
+<Steps>
+  <Step title="Open SFTP view">
+    **From Vault:**
+    - Right-click a host → **Open SFTP**
+    
+    **From Terminal:**
+    - Click the **SFTP** button in the terminal toolbar
+    - Or press ⌘+Shift+O (Ctrl+Shift+O)
+  </Step>
+
+  <Step title="Navigate the dual-pane interface">
+    The SFTP view shows:
+    - **Left pane**: Local filesystem (your computer)
+    - **Right pane**: Remote filesystem (SSH server)
+    
+    Navigate by:
+    - Double-clicking folders to enter them
+    - Clicking breadcrumbs to go up the directory tree
+    - Using the path bar to jump to specific directories
+  </Step>
+
+  <Step title="Transfer files">
+    **Upload files (Local → Remote):**
+    1. Select files in the left pane
+    2. Drag them to the right pane, or
+    3. Copy (⌘+C) and paste (⌘+V) in the destination
+    
+    **Download files (Remote → Local):**
+    1. Select files in the right pane
+    2. Drag them to the left pane, or
+    3. Copy and paste to the destination
+    
+    **Drag from desktop:**
+    - Drag files from Finder/Explorer directly into the SFTP pane to upload
+  </Step>
+
+  <Step title="Edit remote files">
+    Netcatty includes a built-in code editor powered by Monaco Editor:
+    
+    1. Right-click a remote file
+    2. Select **Edit**
+    3. Make your changes in the editor
+    4. Save with ⌘+S (Ctrl+S)
+    
+    <Note>
+      The editor supports syntax highlighting for common languages and includes features like find/replace and word wrap.
+    </Note>
+  </Step>
+
+  <Step title="File operations">
+    Additional SFTP operations:
+    
+    - **Rename**: Select file → Press F2
+    - **Delete**: Select file → Press ⌘+⌫ (Delete key)
+    - **New Folder**: ⌘+Shift+N (Ctrl+Shift+N)
+    - **Refresh**: ⌘+R (F5)
+    - **Select All**: ⌘+A (Ctrl+A)
+  </Step>
+</Steps>
+
+### SFTP with Sudo
+
+For files requiring elevated privileges:
+
+1. Edit the host settings
+2. Enable **Use sudo for SFTP operations**
+3. Reconnect to the host
+4. Enter your sudo password when prompted
+
+<Warning>
+  Sudo SFTP requires your user to have sudo privileges on the remote server.
+</Warning>
+
+---
+
+## Setting Up Port Forwarding
+
+Port forwarding lets you access remote services securely through SSH tunnels.
+
+<Steps>
+  <Step title="Open Port Forwarding manager">
+    Click **Port Forwarding** in the sidebar or press:
+    - **macOS**: `⌘ + P`
+    - **Windows/Linux**: `Ctrl + P`
+  </Step>
+
+  <Step title="Create a local forward">
+    **Local forwarding** makes a remote service available on your local machine:
+    
+    1. Click **+ New Rule**
+    2. Select **Local Forward**
+    3. Configure:
+       ```
+       Label: MySQL Database
+       Local Port: 3306
+       Bind Address: 127.0.0.1 (localhost only)
+       Remote Host: localhost (on the SSH server)
+       Remote Port: 3306
+       SSH Host: Select your database server
+       ```
+    4. Click **Start** to activate the tunnel
+    
+    Now you can connect to `localhost:3306` on your machine to access the remote MySQL server.
+  </Step>
+
+  <Step title="Create a remote forward">
+    **Remote forwarding** makes a local service available to the remote server:
+    
+    1. Click **+ New Rule**
+    2. Select **Remote Forward**
+    3. Configure:
+       ```
+       Label: Local Web Server
+       Local Port: 8080 (your local service)
+       Remote Port: 8080 (port on SSH server)
+       Bind Address: 0.0.0.0 (allow remote connections)
+       SSH Host: Select your server
+       ```
+    4. Click **Start**
+    
+    The remote server can now access your local service at `localhost:8080`.
+  </Step>
+
+  <Step title="Create a dynamic forward (SOCKS proxy)">
+    **Dynamic forwarding** creates a SOCKS proxy for routing traffic through the SSH server:
+    
+    1. Click **+ New Rule**
+    2. Select **Dynamic Forward**
+    3. Configure:
+       ```
+       Label: SOCKS Proxy
+       Local Port: 1080
+       Bind Address: 127.0.0.1
+       SSH Host: Select your proxy server
+       ```
+    4. Click **Start**
+    
+    Configure your browser or apps to use `localhost:1080` as a SOCKS5 proxy.
+  </Step>
+
+  <Step title="Enable auto-start">
+    For tunnels you use frequently:
+    
+    1. Edit the port forwarding rule
+    2. Check **Auto-start on app launch**
+    3. The tunnel will automatically connect when Netcatty starts
+  </Step>
+</Steps>
+
+---
+
+## Advanced Features
+
+### Using Snippets
+
+Snippets let you save and execute frequently used commands:
+
+1. Click **Snippets** in the sidebar
+2. Click **+ New Snippet**
+3. Enter:
+   ```
+   Label: Update System
+   Command:
+   sudo apt update
+   sudo apt upgrade -y
+   ```
+4. Assign a keyboard shortcut (optional): `F1`, `Ctrl+F1`, etc.
+5. Save the snippet
+
+To run:
+- Open a terminal → Right-click → **Snippets** → Select your snippet
+- Or press the assigned keyboard shortcut
+
+### Broadcast Mode
+
+Send commands to multiple terminals simultaneously:
+
+1. Open multiple terminal sessions (in tabs or split panes)
+2. Press ⌘+B (Ctrl+B) to enable broadcast mode
+3. Type commands - they'll execute in all active terminals
+4. Press ⌘+B (Ctrl+B) again to disable
+
+<Warning>
+  Use broadcast mode carefully! Commands execute on all active terminals without confirmation.
+</Warning>
+
+### Custom Themes
+
+Personalize your terminal appearance:
+
+1. Go to **Settings** → **Appearance**
+2. Choose from built-in themes or create a custom theme
+3. Adjust colors for background, foreground, cursor, and ANSI colors
+4. Apply globally or per-host in host settings
+
+### Keyword Highlighting
+
+Highlight important patterns in terminal output:
+
+1. Go to **Settings** → **Terminal** → **Keyword Highlighting**
+2. Enable highlighting
+3. Add or modify rules:
+   - **Error**: Highlights errors and failures in red
+   - **Warning**: Highlights warnings in yellow
+   - **OK**: Highlights success messages in green
+   - **IP/MAC**: Highlights IP addresses and MAC addresses
+4. Use regex patterns for custom matching
+
+---
+
+## Keyboard Shortcuts Reference
+
+### Essential Shortcuts
+
+| Action | macOS | Windows/Linux |
+|--------|-------|---------------|
+| New Local Terminal | ⌘ + T | Ctrl + T |
+| New Host | ⌘ + N | Ctrl + N |
+| Quick Switcher | ⌘ + J | Ctrl + J |
+| Command Palette | ⌘ + K | Ctrl + K |
+| Open SFTP | ⌘ + Shift + O | Ctrl + Shift + O |
+| Port Forwarding | ⌘ + P | Ctrl + P |
+| Close Tab | ⌘ + W | Ctrl + W |
+| Next Tab | ⌘ + Shift + ] | Ctrl + Tab |
+| Previous Tab | ⌘ + Shift + [ | Ctrl + Shift + Tab |
+
+### Terminal Shortcuts
+
+| Action | macOS | Windows/Linux |
+|--------|-------|---------------|
+| Copy | ⌘ + C | Ctrl + Shift + C |
+| Paste | ⌘ + V | Ctrl + Shift + V |
+| Select All | ⌘ + A | Ctrl + Shift + A |
+| Search | ⌘ + F | Ctrl + Shift + F |
+| Clear Buffer | ⌘ + ⌃ + K | Ctrl + Shift + K |
+| Split Horizontal | ⌘ + D | Ctrl + Shift + D |
+| Split Vertical | ⌘ + Shift + D | Ctrl + Shift + E |
+| Move Focus | ⌘ + ⌥ + Arrows | Ctrl + Alt + Arrows |
+
+<Note>
+  You can customize all keyboard shortcuts in **Settings** → **Keyboard Shortcuts**.
+</Note>
+
+---
+
+## Tips & Tricks
+
+<CardGroup cols={2}>
+  <Card title="Quick Connect" icon="zap">
+    Paste SSH URLs like `ssh://user@host:22` directly into the search bar for instant parsing and connection.
+  </Card>
+  
+  <Card title="Drag & Drop Everywhere" icon="mouse-pointer">
+    Drag files from your desktop into SFTP to upload, or drag between remote servers for direct server-to-server transfers.
+  </Card>
+  
+  <Card title="Search History" icon="search">
+    Click the clock icon in the Vault sidebar to search through all commands from past sessions.
+  </Card>
+  
+  <Card title="Tree View for Organization" icon="folder-tree">
+    Use Tree view (Vault) when managing many hosts in nested groups - it's faster than scrolling through lists.
+  </Card>
+</CardGroup>
+
+---
+
+## Troubleshooting
+
+### Connection refused
+
+- Verify the hostname/IP and port are correct
+- Check if SSH server is running: `sudo systemctl status sshd`
+- Ensure firewall allows SSH traffic (port 22)
+
+### Authentication failed
+
+- Double-check username and password
+- For SSH keys, ensure the public key is in `~/.ssh/authorized_keys` on the server
+- Verify key permissions: `chmod 600 ~/.ssh/id_rsa`
+
+### SFTP operations fail
+
+- Check file/folder permissions on the remote server
+- Enable "Use sudo for SFTP" if accessing protected directories
+- Verify encoding settings if you see garbled filenames
+
+### Port forwarding not working
+
+- Ensure the local port isn't already in use
+- Check if the remote service is running and accessible
+- Verify `GatewayPorts` and `AllowTcpForwarding` are enabled in SSH server config
+
+---
+
+## Next Steps
+
+Now that you're familiar with the basics, explore more features:
+
+<CardGroup cols={2}>
+  <Card title="SSH Keys & Security" icon="key">
+    Learn about key management, agent forwarding, and jump hosts
+  </Card>
+  
+  <Card title="Advanced Terminal" icon="terminal">
+    Explore custom themes, keyword highlighting, and terminal settings
+  </Card>
+  
+  <Card title="SFTP Deep Dive" icon="folder">
+    Master file operations, bookmarks, and encoding settings
+  </Card>
+  
+  <Card title="Automation with Snippets" icon="code">
+    Create powerful multi-line scripts and assign keyboard shortcuts
+  </Card>
+</CardGroup>

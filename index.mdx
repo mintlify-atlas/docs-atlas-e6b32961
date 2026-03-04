@@ -1,97 +1,265 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: Netcatty Documentation
+description: Modern SSH client, SFTP browser, and terminal manager for developers and DevOps teams
+mode: custom
 ---
 
-## Setting up
+<div className="relative overflow-hidden bg-gradient-to-br from-[#0f1117] via-[#1a1d27] to-[#0f1117] dark:from-[#0f1117] dark:via-[#1a1d27] dark:to-[#0f1117] py-20">
+  <div className="max-w-6xl mx-auto px-6">
+    <div className="flex flex-col lg:flex-row items-center gap-12">
+      <div className="flex-1 text-center lg:text-left">
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white dark:text-white mb-6">
+          Modern SSH Workspace
+        </h1>
+        <p className="text-lg sm:text-xl text-gray-300 dark:text-gray-300 max-w-2xl mb-8">
+          Manage multiple remote servers with split terminals, SFTP browser, and powerful workspace organization. Built for developers, sysadmins, and DevOps engineers.
+        </p>
+        <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
+          <a
+            href="/quickstart"
+            className="inline-flex items-center px-6 py-3 rounded-lg bg-[#2b69ee] hover:bg-[#1e4ec9] text-white font-semibold transition-colors no-underline"
+          >
+            Get Started
+          </a>
+          <a
+            href="/installation"
+            className="inline-flex items-center px-6 py-3 rounded-lg border border-white/30 bg-white/10 hover:bg-white/20 hover:border-white/50 text-white font-semibold transition-colors no-underline"
+          >
+            Download Netcatty
+          </a>
+        </div>
+      </div>
+      <div className="flex-1 hidden lg:block">
+        <img
+          src="https://raw.githubusercontent.com/binaricat/Netcatty/main/screenshots/main-window-dark.png"
+          alt="Netcatty main interface showing terminal workspace"
+          noZoom
+          className="rounded-xl shadow-2xl w-full h-auto"
+        />
+      </div>
+    </div>
+  </div>
+</div>
 
-Get your documentation site up and running in minutes.
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <div className="text-center mb-12">
+    <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+      Everything you need for SSH workflows
+    </h2>
+    <p className="text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+      Netcatty combines powerful terminal management, file transfer, and workspace organization in one beautiful desktop app.
+    </p>
+  </div>
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+  <CardGroup cols={3}>
+    <Card title="Multi-Protocol Support" icon="network-wired" href="/features/ssh-connections">
+      Connect via SSH, Telnet, Mosh, or serial. Support for jump hosts, proxy servers, and legacy algorithms.
+    </Card>
+    <Card title="Vault Organization" icon="folder-tree" href="/features/vault-management">
+      Organize hosts with grid, list, and tree views. Fast search and drag-friendly workflows.
+    </Card>
+    <Card title="Split Terminals" icon="window-restore" href="/features/terminal-workspaces">
+      Work in multiple sessions simultaneously with horizontal and vertical splits.
+    </Card>
+    <Card title="SFTP Browser" icon="folder-open" href="/features/sftp-browser">
+      Drag-and-drop file transfers with built-in editor for quick changes.
+    </Card>
+    <Card title="Port Forwarding" icon="right-left" href="/features/port-forwarding">
+      Local, remote, and dynamic port forwarding with auto-start support.
+    </Card>
+    <Card title="Custom Themes" icon="palette" href="/guides/custom-themes">
+      Personalize your workspace with custom themes and keyword highlighting.
+    </Card>
+  </CardGroup>
+</div>
 
-## Make it yours
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+    Quick Start
+  </h2>
+  <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
+    Get up and running with Netcatty in minutes
+  </p>
 
-Design a docs site that looks great and empowers your users.
+  <Steps>
+    <Step title="Download and Install">
+      Download the latest release for your platform from [GitHub Releases](https://github.com/binaricat/Netcatty/releases/latest).
+      
+      Available for macOS (Universal), Windows (x64/arm64), and Linux (x64/arm64).
 
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
-  </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
-  </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
+      <Note>
+        **macOS users**: After downloading, remove the quarantine attribute:
+        ```bash
+        xattr -cr /Applications/Netcatty.app
+        ```
+      </Note>
+    </Step>
 
-## Create beautiful pages
+    <Step title="Add Your First Host">
+      Launch Netcatty and click the **+** button in the Vault to add a new host.
+      
+      Configure your connection:
+      - **Hostname**: Your server's IP or domain
+      - **Port**: SSH port (default 22)
+      - **Username**: Your SSH username
+      - **Authentication**: Choose password or SSH key
 
-Everything you need to create world-class documentation.
+      Click **Save** to add the host to your vault.
+    </Step>
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+    <Step title="Connect and Explore">
+      Double-click your host to open a terminal session. Try these features:
+      
+      - **Split panes**: Right-click the terminal tab → Split Horizontal/Vertical
+      - **SFTP**: Click the folder icon to browse remote files
+      - **Port forwarding**: Access the Port Forwarding panel to create tunnels
+      
+      Your workspace state is automatically saved and restored on next launch.
+    </Step>
+  </Steps>
+</div>
 
-## Need inspiration?
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+    Explore by Topic
+  </h2>
+  <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
+    Dive deeper into Netcatty's capabilities
+  </p>
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <a
+      href="/guides/host-configuration"
+      className="group block rounded-2xl border border-gray-200 dark:border-[#27272a] hover:border-[#2b69ee] dark:hover:border-[#2b69ee] overflow-hidden transition-colors no-underline"
+    >
+      <div className="h-48 bg-gradient-to-br from-blue-500/10 to-purple-500/10 dark:from-blue-500/10 dark:to-purple-500/10 flex items-center justify-center overflow-hidden">
+        <img
+          src="https://raw.githubusercontent.com/binaricat/Netcatty/main/screenshots/vault_grid_view.png"
+          alt="Host configuration in Netcatty"
+          noZoom
+          className="w-full h-full object-cover"
+        />
+      </div>
+      <div className="p-6 bg-white dark:bg-[#1a1d27]">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          Host Configuration
+        </h3>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+          Learn how to configure hosts with advanced options like jump servers, proxy support, and environment variables.
+        </p>
+        <div className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-400 group-hover:text-[#2b69ee] dark:group-hover:text-[#2b69ee] transition-colors">
+          Read the guide
+          <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      </div>
+    </a>
+
+    <a
+      href="/guides/authentication"
+      className="group block rounded-2xl border border-gray-200 dark:border-[#27272a] hover:border-[#2b69ee] dark:hover:border-[#2b69ee] overflow-hidden transition-colors no-underline"
+    >
+      <div className="h-48 bg-gradient-to-br from-green-500/10 to-teal-500/10 dark:from-green-500/10 dark:to-teal-500/10 flex items-center justify-center overflow-hidden">
+        <div className="text-6xl">🔐</div>
+      </div>
+      <div className="p-6 bg-white dark:bg-[#1a1d27]">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          Authentication & Security
+        </h3>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+          Manage SSH keys, certificates, and credentials securely with the built-in keychain manager.
+        </p>
+        <div className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-400 group-hover:text-[#2b69ee] dark:group-hover:text-[#2b69ee] transition-colors">
+          Read the guide
+          <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      </div>
+    </a>
+
+    <a
+      href="/features/sftp-browser"
+      className="group block rounded-2xl border border-gray-200 dark:border-[#27272a] hover:border-[#2b69ee] dark:hover:border-[#2b69ee] overflow-hidden transition-colors no-underline"
+    >
+      <div className="h-48 bg-gradient-to-br from-orange-500/10 to-red-500/10 dark:from-orange-500/10 dark:to-red-500/10 flex items-center justify-center overflow-hidden">
+        <img
+          src="https://raw.githubusercontent.com/binaricat/Netcatty/main/screenshots/gifs/sftpview-with-drag-and-built-in-editor.gif"
+          alt="SFTP browser with drag and drop"
+          noZoom
+          className="w-full h-full object-cover"
+        />
+      </div>
+      <div className="p-6 bg-white dark:bg-[#1a1d27]">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          SFTP File Management
+        </h3>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+          Transfer files with drag-and-drop, edit remotely with the built-in editor, and manage permissions.
+        </p>
+        <div className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-400 group-hover:text-[#2b69ee] dark:group-hover:text-[#2b69ee] transition-colors">
+          Explore SFTP
+          <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      </div>
+    </a>
+
+    <a
+      href="/integrations/cloud-sync"
+      className="group block rounded-2xl border border-gray-200 dark:border-[#27272a] hover:border-[#2b69ee] dark:hover:border-[#2b69ee] overflow-hidden transition-colors no-underline"
+    >
+      <div className="h-48 bg-gradient-to-br from-indigo-500/10 to-blue-500/10 dark:from-indigo-500/10 dark:to-blue-500/10 flex items-center justify-center overflow-hidden">
+        <div className="text-6xl">☁️</div>
+      </div>
+      <div className="p-6 bg-white dark:bg-[#1a1d27]">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          Cloud Sync
+        </h3>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+          Sync your configuration across devices with GitHub, Google Drive, OneDrive, or S3.
+        </p>
+        <div className="flex items-center text-sm font-medium text-gray-600 dark:text-gray-400 group-hover:text-[#2b69ee] dark:group-hover:text-[#2b69ee] transition-colors">
+          Set up sync
+          <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<div className="mt-16 mb-16 max-w-5xl mx-auto px-6">
+  <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+    Resources
+  </h2>
+
+  <CardGroup cols={2}>
+    <Card title="GitHub Repository" icon="github" href="https://github.com/binaricat/Netcatty">
+      View source code, report issues, and contribute to the project.
+    </Card>
+    <Card title="Architecture Guide" icon="sitemap" href="/development/architecture">
+      Learn about Netcatty's internal structure and design patterns.
+    </Card>
+  </CardGroup>
+</div>
+
+<div className="mt-20 mb-16 max-w-5xl mx-auto px-6">
+  <div className="rounded-2xl border border-gray-200 dark:border-[#27272a] bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-[#1a1d27] dark:to-[#242838] p-8 sm:p-12 text-center">
+    <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+      Ready to streamline your SSH workflows?
+    </h2>
+    <p className="text-lg text-gray-600 dark:text-gray-400 mb-8 max-w-2xl mx-auto">
+      Download Netcatty and start managing your remote servers with powerful workspace features.
+    </p>
+    <a
+      href="/installation"
+      className="inline-flex items-center px-8 py-4 rounded-lg bg-[#2b69ee] hover:bg-[#1e4ec9] text-white font-semibold transition-colors no-underline text-lg"
+    >
+      Get Started Now
+    </a>
+  </div>
+</div>

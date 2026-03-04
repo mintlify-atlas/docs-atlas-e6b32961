@@ -1,0 +1,531 @@
+---
+title: Port Forwarding
+description: Create local, remote, and dynamic port forwards to tunnel traffic through SSH connections securely
+---
+
+Netcatty's port forwarding feature lets you securely tunnel traffic through SSH connections, providing access to remote services, exposing local services to remote networks, and creating SOCKS proxies for dynamic routing.
+
+## Types of Port Forwarding
+
+Netcatty supports three types of SSH port forwarding:
+
+<CardGroup cols={3}>
+  <Card title="Local Forwarding" icon="arrow-right">
+    Forward a local port to a remote destination through the SSH server.
+
+    **Use case**: Access a remote database or web service from your local machine.
+  </Card>
+  <Card title="Remote Forwarding" icon="arrow-left">
+    Forward a remote port on the SSH server to a local destination.
+
+    **Use case**: Expose a local dev server to the remote network for testing.
+  </Card>
+  <Card title="Dynamic Forwarding" icon="globe">
+    Create a SOCKS proxy for dynamic application-level forwarding.
+
+    **Use case**: Route browser traffic through the SSH server as a VPN-like proxy.
+  </Card>
+</CardGroup>
+
+## Creating Port Forwards
+
+### From Port Forwarding Panel
+
+1. Open **Port Forwarding** panel (toolbar or `⌘+Shift+P` / `Ctrl+Shift+P`)
+2. Click **Add Rule**
+3. Configure the forward:
+   - **Type**: Local, Remote, or Dynamic
+   - **Local Port**: Port on your machine
+   - **Remote Host**: Destination hostname
+   - **Remote Port**: Destination port
+4. Click **Start** to activate
+
+### From Host Configuration
+
+Configure persistent port forwards in host settings:
+
+```json
+{
+  "portForwarding": [
+    {
+      "id": "forward-1",
+      "type": "local",
+      "localPort": 3306,
+      "remoteHost": "localhost",
+      "remotePort": 3306,
+      "enabled": true,
+      "autoStart": true
+    }
+  ]
+}
+```
+
+Persistent forwards start automatically when connecting to the host.
+
+## Local Port Forwarding
+
+Forward a local port to a remote destination:
+
+```
+Local Machine      SSH Server        Remote Service
+:8080      →      ssh.example.com  →  internal-db:3306
+```
+
+### Configuration
+
+<ParamField path="type" type="string" required>
+  Set to `"local"` for local port forwarding
+</ParamField>
+
+<ParamField path="localPort" type="number" required>
+  Port on your local machine to listen on (e.g., `8080`)
+</ParamField>
+
+<ParamField path="remoteHost" type="string" required>
+  Destination hostname as seen from the SSH server (e.g., `localhost`, `internal-db`)
+</ParamField>
+
+<ParamField path="remotePort" type="number" required>
+  Port on the remote destination (e.g., `3306`, `80`)
+</ParamField>
+
+<ParamField path="autoStart" type="boolean" default="false">
+  Automatically start this forward when connecting to the host
+</ParamField>
+
+### Example: Access Remote MySQL
+
+**Scenario**: MySQL runs on `internal-db:3306` in the remote network, not accessible from your machine.
+
+**Solution**: Create a local forward:
+
+```json
+{
+  "type": "local",
+  "localPort": 3306,
+  "remoteHost": "internal-db",
+  "remotePort": 3306
+}
+```
+
+**Usage**: Connect to `localhost:3306` on your machine, traffic routes through SSH to `internal-db:3306`.
+
+```bash
+mysql -h localhost -P 3306 -u user -p
+```
+
+<Tip>
+Use `localhost` as `remoteHost` to access services running on the SSH server itself.
+</Tip>
+
+### Example: Access Remote Web App
+
+**Scenario**: Internal web app on `app-server:8080` not accessible from your network.
+
+**Configuration**:
+
+```json
+{
+  "type": "local",
+  "localPort": 8080,
+  "remoteHost": "app-server",
+  "remotePort": 8080
+}
+```
+
+**Usage**: Open `http://localhost:8080` in your browser.
+
+## Remote Port Forwarding
+
+Expose a local port to the remote network:
+
+```
+Local Service       SSH Server       Remote Network
+localhost:3000  ←   ssh.example.com  ←  :8080
+```
+
+### Configuration
+
+<ParamField path="type" type="string" required>
+  Set to `"remote"` for remote port forwarding
+</ParamField>
+
+<ParamField path="remotePort" type="number" required>
+  Port on the SSH server to listen on (e.g., `8080`)
+</ParamField>
+
+<ParamField path="localHost" type="string" default="localhost">
+  Local hostname (usually `localhost`)
+</ParamField>
+
+<ParamField path="localPort" type="number" required>
+  Port on your local machine (e.g., `3000`)
+</ParamField>
+
+### Example: Expose Local Dev Server
+
+**Scenario**: You're developing a web app on `localhost:3000` and need to demo it to a colleague on the remote network.
+
+**Solution**: Create a remote forward:
+
+```json
+{
+  "type": "remote",
+  "remotePort": 8080,
+  "localHost": "localhost",
+  "localPort": 3000
+}
+```
+
+**Usage**: Your colleague accesses `ssh.example.com:8080`, which tunnels to your `localhost:3000`.
+
+<Warning>
+**Server configuration required**: Remote port forwarding may be disabled by default. The SSH server must have `GatewayPorts` enabled in `/etc/ssh/sshd_config`:
+
+```bash
+GatewayPorts yes
+```
+
+Restart SSH after changing: `sudo systemctl restart sshd`
+</Warning>
+
+### Example: Expose Local Database
+
+**Scenario**: Remote app needs to connect to a database on your local machine.
+
+**Configuration**:
+
+```json
+{
+  "type": "remote",
+  "remotePort": 5432,
+  "localHost": "localhost",
+  "localPort": 5432
+}
+```
+
+**Usage**: Remote apps connect to `localhost:5432` on the SSH server, which routes to your local PostgreSQL.
+
+## Dynamic Port Forwarding (SOCKS Proxy)
+
+Create a SOCKS proxy for dynamic traffic routing:
+
+```
+Local Apps        SSH Server        Internet
+→ SOCKS :1080  →  ssh.example.com  →  Any destination
+```
+
+### Configuration
+
+<ParamField path="type" type="string" required>
+  Set to `"dynamic"` for SOCKS proxy
+</ParamField>
+
+<ParamField path="localPort" type="number" required>
+  Local port for SOCKS proxy (e.g., `1080`)
+</ParamField>
+
+### Example: Browser Proxy
+
+**Scenario**: Route browser traffic through the SSH server to access geo-restricted content or bypass firewalls.
+
+**Configuration**:
+
+```json
+{
+  "type": "dynamic",
+  "localPort": 1080
+}
+```
+
+**Usage**: Configure your browser to use SOCKS5 proxy `localhost:1080`.
+
+<Tabs>
+  <Tab title="Firefox">
+    1. Open **Settings** → **Network Settings**
+    2. Select **Manual proxy configuration**
+    3. Set **SOCKS Host**: `localhost`, **Port**: `1080`
+    4. Select **SOCKS v5**
+    5. Check **Proxy DNS when using SOCKS v5**
+    6. Click **OK**
+  </Tab>
+
+  <Tab title="Chrome/Edge">
+    1. Install a proxy extension like **Proxy SwitchyOmega**
+    2. Create new profile:
+       - Protocol: `socks5`
+       - Server: `localhost`
+       - Port: `1080`
+    3. Enable the profile
+  </Tab>
+
+  <Tab title="System-wide (macOS)">
+    1. Open **System Settings** → **Network**
+    2. Select your network → **Details** → **Proxies**
+    3. Check **SOCKS Proxy**
+    4. Set **SOCKS Proxy Server**: `localhost:1080`
+    5. Click **OK**
+
+    <Note>System-wide proxy affects all applications, not just browsers.</Note>
+  </Tab>
+</Tabs>
+
+### Example: CLI Tools via Proxy
+
+Route command-line tools through the SOCKS proxy:
+
+```bash
+# Using curl with SOCKS5 proxy
+curl --socks5 localhost:1080 https://api.example.com
+
+# Using git with SOCKS5 proxy
+git config --global http.proxy socks5://localhost:1080
+
+# Using wget with SOCKS5 proxy
+export http_proxy=socks5://localhost:1080
+export https_proxy=socks5://localhost:1080
+wget https://example.com/file.tar.gz
+```
+
+## Managing Port Forwards
+
+### Port Forwarding Panel
+
+Access the panel:
+- Click **Port Forwarding** in the toolbar
+- Or press `⌘+Shift+P` (macOS) / `Ctrl+Shift+P` (Windows/Linux)
+
+The panel shows all active and configured forwards:
+
+| Column | Description |
+|--------|-------------|
+| **Type** | Local, Remote, or Dynamic |
+| **Local Port** | Port on your machine |
+| **Remote** | Destination (host:port) |
+| **Status** | Active, Stopped, or Error |
+| **Auto-start** | Whether it starts automatically |
+
+### Actions
+
+<Tabs>
+  <Tab title="Start/Stop">
+    Click the **Start** or **Stop** button to control the forward.
+
+    Active forwards show a green indicator and "Active" status.
+  </Tab>
+
+  <Tab title="Edit">
+    Click the **Edit** icon to modify configuration:
+    - Change ports
+    - Update destination
+    - Toggle auto-start
+
+    <Note>You must stop the forward before editing.</Note>
+  </Tab>
+
+  <Tab title="Delete">
+    Click the **Delete** icon to remove the forward permanently.
+
+    <Warning>This cannot be undone. The forward configuration is deleted from the host.</Warning>
+  </Tab>
+</Tabs>
+
+## Auto-Start Forwards
+
+Configure forwards to start automatically when connecting:
+
+```json
+{
+  "portForwarding": [
+    {
+      "id": "db-forward",
+      "type": "local",
+      "localPort": 3306,
+      "remoteHost": "localhost",
+      "remotePort": 3306,
+      "autoStart": true
+    }
+  ]
+}
+```
+
+With `autoStart: true`:
+1. Connect to the host
+2. Netcatty automatically starts the forward
+3. The forward remains active until you disconnect
+
+Without `autoStart` (or `false`), you must manually start forwards from the panel.
+
+## Common Use Cases
+
+<AccordionGroup>
+  <Accordion title="Access Internal Database">
+    **Problem**: Database on internal network, not accessible from your machine.
+
+    **Solution**: Local forward from your machine to the database.
+
+    ```json
+    {
+      "type": "local",
+      "localPort": 5432,
+      "remoteHost": "db.internal",
+      "remotePort": 5432
+    }
+    ```
+
+    Connect: `psql -h localhost -p 5432`
+  </Accordion>
+
+  <Accordion title="Expose Local Dev Server">
+    **Problem**: Need to share local development server with remote team.
+
+    **Solution**: Remote forward from SSH server to your local port.
+
+    ```json
+    {
+      "type": "remote",
+      "remotePort": 8080,
+      "localPort": 3000
+    }
+    ```
+
+    Team accesses: `http://ssh-server:8080`
+  </Accordion>
+
+  <Accordion title="Bypass Firewall Restrictions">
+    **Problem**: Corporate firewall blocks certain websites or services.
+
+    **Solution**: Dynamic SOCKS proxy through an external SSH server.
+
+    ```json
+    {
+      "type": "dynamic",
+      "localPort": 1080
+    }
+    ```
+
+    Configure browser to use `localhost:1080` as SOCKS5 proxy.
+  </Accordion>
+
+  <Accordion title="Multi-Hop Port Forward">
+    **Problem**: Need to access a service through multiple jump hosts.
+
+    **Solution**: Combine host chaining with port forwarding.
+
+    1. Configure jump host chain
+    2. Add local forward on the final host
+    3. Traffic routes through all hops to the destination
+
+    See [Jump Hosts](/integrations/jump-hosts) for setup.
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Port Already in Use">
+    **Error**: `Address already in use` or `EADDRINUSE`
+
+    **Cause**: Another process is using the local port.
+
+    **Solutions**:
+    - Find and stop the conflicting process:
+      ```bash
+      # macOS/Linux
+      lsof -i :3306
+      kill <PID>
+
+      # Windows
+      netstat -ano | findstr :3306
+      taskkill /PID <PID> /F
+      ```
+    - Choose a different local port (e.g., `3307` instead of `3306`)
+  </Accordion>
+
+  <Accordion title="Connection Refused to Remote Host">
+    **Error**: `Connection refused` when forwarding starts
+
+    **Cause**: Remote destination is not accessible from the SSH server.
+
+    **Solutions**:
+    - Verify the remote service is running: `telnet remoteHost remotePort`
+    - Check firewall on the SSH server allows access to the destination
+    - Ensure the remote hostname resolves from the SSH server
+  </Accordion>
+
+  <Accordion title="Remote Forward Not Accessible">
+    **Problem**: Remote forward is active but not reachable from remote network.
+
+    **Cause**: SSH server's `GatewayPorts` is not configured.
+
+    **Solution**: Enable `GatewayPorts` in `/etc/ssh/sshd_config` on the SSH server:
+    ```bash
+    GatewayPorts yes
+    # or
+    GatewayPorts clientspecified
+    ```
+    Restart SSH: `sudo systemctl restart sshd`
+  </Accordion>
+
+  <Accordion title="SOCKS Proxy Not Working">
+    **Problem**: Applications can't connect through SOCKS proxy.
+
+    **Cause**: Application not configured or DNS not proxied.
+
+    **Solutions**:
+    - Verify application supports SOCKS5 proxy
+    - Enable "Proxy DNS" or "Remote DNS" in proxy settings
+    - Test with `curl --socks5 localhost:1080 https://ifconfig.me`
+  </Accordion>
+
+  <Accordion title="Permission Denied (< 1024)">
+    **Problem**: Can't bind to ports below 1024 (e.g., 80, 443).
+
+    **Cause**: Privileged ports require admin access on some systems.
+
+    **Solution**: Use a higher port number (e.g., `8080` instead of `80`) or run with elevated privileges (not recommended).
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use High Ports" icon="hashtag">
+    Prefer ports above 1024 to avoid permission issues. For example, use `3307` instead of `3306` if the standard port is unavailable.
+  </Card>
+  <Card title="Enable Auto-Start" icon="power-off">
+    Configure `autoStart: true` for forwards you use regularly to save manual setup time.
+  </Card>
+  <Card title="Document Your Forwards" icon="file-lines">
+    Add descriptive labels to port forwards in host notes so you remember what each one is for.
+  </Card>
+  <Card title="Close When Done" icon="xmark">
+    Stop forwards when not in use to free ports and reduce security exposure.
+  </Card>
+</CardGroup>
+
+## Security Considerations
+
+<Warning>
+- **Remote forwards** expose local services to the remote network. Only use on trusted servers.
+- **SOCKS proxies** route all traffic through the SSH server. Avoid on untrusted or compromised systems.
+- **GatewayPorts yes** allows remote forwards to bind to all interfaces (0.0.0.0). This can expose services to the internet if the SSH server is public-facing.
+- Always use strong SSH authentication (keys, not passwords) when relying on port forwards for security.
+</Warning>
+
+## Related Topics
+
+<CardGroup cols={2}>
+  <Card title="SSH Connections" icon="terminal" href="/features/ssh-connections">
+    Learn about SSH connection options and configuration
+  </Card>
+  <Card title="Jump Hosts" icon="server" href="/integrations/jump-hosts">
+    Combine port forwarding with jump host chains
+  </Card>
+  <Card title="Host Configuration" icon="gear" href="/guides/host-configuration">
+    Configure persistent port forwards in host settings
+  </Card>
+  <Card title="Troubleshooting" icon="circle-question" href="/advanced/troubleshooting">
+    Solve common port forwarding issues
+  </Card>
+</CardGroup>

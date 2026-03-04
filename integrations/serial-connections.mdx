@@ -1,0 +1,618 @@
+---
+title: Serial Port Connections
+description: Configure serial port connections for network devices, embedded systems, and console servers
+---
+
+Netcatty supports serial port connections for accessing devices via RS-232, USB-to-serial adapters, and console servers.
+
+## Use Cases
+
+- **Network Equipment**: Routers, switches, firewalls (Cisco, Juniper, etc.)
+- **Embedded Systems**: Raspberry Pi, Arduino, IoT devices
+- **Server Management**: Out-of-band console access (IPMI, iLO, iDRAC)
+- **Console Servers**: Terminal servers providing serial-over-network
+- **Industrial Equipment**: PLCs, RTUs, SCADA systems
+
+## Serial Configuration
+
+Netcatty uses the `SerialConfig` interface for serial port settings.
+
+### Data Structure
+
+```typescript
+interface SerialConfig {
+  path: string;                    // Serial port path
+  baudRate: number;                // Communication speed
+  dataBits?: 5 | 6 | 7 | 8;        // Data bits (default: 8)
+  stopBits?: 1 | 1.5 | 2;          // Stop bits (default: 1)
+  parity?: SerialParity;           // Parity checking (default: 'none')
+  flowControl?: SerialFlowControl; // Flow control (default: 'none')
+  localEcho?: boolean;             // Force local echo (default: false)
+  lineMode?: boolean;              // Line mode buffering (default: false)
+}
+
+type SerialParity = 'none' | 'even' | 'odd' | 'mark' | 'space';
+type SerialFlowControl = 'none' | 'xon/xoff' | 'rts/cts';
+```
+
+### Serial Port Path
+
+The `path` field identifies the serial device:
+
+**Linux:**
+```
+/dev/ttyUSB0    # USB-to-serial adapter (FTDI, Prolific, etc.)
+/dev/ttyS0      # Built-in serial port COM1
+/dev/ttyS1      # Built-in serial port COM2
+/dev/ttyACM0    # USB CDC device (Arduino, many ARM boards)
+/dev/ttyAMA0    # Raspberry Pi GPIO serial port
+```
+
+**macOS:**
+```
+/dev/tty.usbserial-XXXX   # USB-to-serial adapter
+/dev/tty.SLAB_USBtoUART   # SiLabs CP210x
+/dev/tty.usbmodem1234     # Arduino, STM32
+/dev/cu.usbserial-XXXX    # Callout device (preferred)
+```
+
+**Windows:**
+```
+COM1    # Built-in serial port
+COM3    # USB-to-serial adapter (port varies)
+COM10   # High-numbered ports
+```
+
+**Finding your port:**
+
+Linux:
+```bash
+ls /dev/tty*        # List all TTY devices
+dmesg | grep tty    # Kernel messages about serial devices
+lsusb               # List USB devices (to identify adapter)
+```
+
+macOS:
+```bash
+ls /dev/tty.*       # List TTY devices
+system_profiler SPUSBDataType  # USB device info
+```
+
+Windows:
+- Open **Device Manager** → **Ports (COM & LPT)**
+- Look for "USB Serial Port (COMx)"
+
+### Baud Rate
+
+Communication speed in bits per second (bps).
+
+**Common baud rates:**
+- **9600** - Default for many devices, slow but reliable
+- **19200** - 2x faster than 9600
+- **38400** - 4x faster than 9600
+- **57600** - Common for modern devices
+- **115200** - Standard high speed (common for Linux consoles, Raspberry Pi)
+- **230400** - Very high speed (less reliable over long cables)
+
+**Device-specific examples:**
+- Cisco routers/switches: 9600 (older) or 115200 (newer)
+- Raspberry Pi: 115200
+- Arduino: 9600 or 115200 (set in sketch)
+- Linux serial console: 115200
+- Old modems: 2400, 9600
+
+**Matching baud rates:** The terminal and device must use the same baud rate or communication will fail.
+
+### Data Bits
+
+Number of bits in each character.
+
+- **8** (default) - Standard for modern devices, supports full ASCII + extended
+- **7** - Older systems, 7-bit ASCII only
+- **5** - Legacy teletype equipment (Baudot code)
+- **6** - Rare, some vintage systems
+
+**Most devices use 8 data bits.** Only change if device documentation specifies otherwise.
+
+### Stop Bits
+
+Number of stop bits after each character.
+
+- **1** (default) - Standard for modern devices
+- **2** - Older systems, slow baud rates
+- **1.5** - Rare, some legacy equipment
+
+**Most devices use 1 stop bit.** Use 2 only if specified by device.
+
+### Parity
+
+Error checking mechanism.
+
+- **none** (default) - No parity checking, most common
+- **even** - Even parity bit (sum of 1s is even)
+- **odd** - Odd parity bit (sum of 1s is odd)
+- **mark** - Parity bit always 1 (rare)
+- **space** - Parity bit always 0 (rare)
+
+**Modern devices typically use no parity.** Enable only if device requires it.
+
+### Flow Control
+
+Prevents data loss when receiver is slower than sender.
+
+- **none** (default) - No flow control
+- **xon/xoff** - Software flow control (send Ctrl+S to pause, Ctrl+Q to resume)
+- **rts/cts** - Hardware flow control (uses RTS/CTS pins)
+
+**When to use:**
+- **none**: Short cables, modern devices, interactive terminals
+- **xon/xoff**: Serial file transfers, no hardware flow control pins
+- **rts/cts**: High-speed transfers, devices with hardware flow control support
+
+### Local Echo
+
+Controls whether typed characters are displayed locally.
+
+- **false** (default) - Rely on remote echo (device sends back what you type)
+- **true** - Display typed characters locally (use when device doesn't echo)
+
+**When to enable:**
+- Device is silent when you type
+- Device has echo disabled
+- You see double characters (try disabling if enabled)
+
+### Line Mode
+
+Buffer input until Enter is pressed.
+
+- **false** (default) - Character mode (send each keypress immediately)
+- **true** - Line mode (send only after Enter)
+
+**When to enable:**
+- Device expects line-at-a-time input
+- You want to edit commands before sending
+- Device can't handle character-by-character input
+
+## Common Configurations
+
+### Cisco Router/Switch Console
+
+**Standard settings (older devices):**
+```typescript
+{
+  protocol: 'serial',
+  label: 'Cisco Switch Console',
+  hostname: 'COM3',  // or /dev/ttyUSB0 on Linux
+  serialConfig: {
+    path: 'COM3',
+    baudRate: 9600,
+    dataBits: 8,
+    stopBits: 1,
+    parity: 'none',
+    flowControl: 'none'
+  }
+}
+```
+
+**Modern devices (2015+):**
+Same as above, but use `baudRate: 115200`.
+
+### Raspberry Pi Serial Console
+
+```typescript
+{
+  protocol: 'serial',
+  label: 'Raspberry Pi Console',
+  hostname: '/dev/ttyUSB0',  // or /dev/tty.usbserial-XXXX on macOS
+  serialConfig: {
+    path: '/dev/ttyUSB0',
+    baudRate: 115200,
+    dataBits: 8,
+    stopBits: 1,
+    parity: 'none',
+    flowControl: 'none'
+  }
+}
+```
+
+**Raspberry Pi GPIO serial (direct connection):**
+Use `/dev/ttyAMA0` (older Pi) or `/dev/ttyS0` (Pi 3/4) instead of USB adapter.
+
+### Arduino Serial Monitor
+
+```typescript
+{
+  protocol: 'serial',
+  label: 'Arduino Uno',
+  hostname: 'COM5',  // or /dev/ttyACM0 on Linux
+  serialConfig: {
+    path: 'COM5',
+    baudRate: 9600,  // Must match Serial.begin() in sketch
+    dataBits: 8,
+    stopBits: 1,
+    parity: 'none',
+    flowControl: 'none'
+  }
+}
+```
+
+**Important:** Match baud rate to your Arduino sketch:
+```cpp
+void setup() {
+  Serial.begin(9600);  // Use 9600 in Netcatty
+}
+```
+
+### Linux Server Serial Console
+
+```typescript
+{
+  protocol: 'serial',
+  label: 'Server IPMI Console',
+  hostname: '/dev/ttyS0',
+  serialConfig: {
+    path: '/dev/ttyS0',
+    baudRate: 115200,
+    dataBits: 8,
+    stopBits: 1,
+    parity: 'none',
+    flowControl: 'none'
+  }
+}
+```
+
+**Enable serial console on Linux server:**
+```bash
+# Add to /etc/default/grub:
+GRUB_CMDLINE_LINUX="console=tty0 console=ttyS0,115200n8"
+GRUB_TERMINAL="serial console"
+GRUB_SERIAL_COMMAND="serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1"
+
+# Update grub and reboot
+sudo update-grub
+sudo systemctl enable serial-getty@ttyS0.service
+sudo reboot
+```
+
+### Juniper Device Console
+
+```typescript
+{
+  protocol: 'serial',
+  label: 'Juniper EX Switch',
+  hostname: 'COM3',
+  serialConfig: {
+    path: 'COM3',
+    baudRate: 9600,
+    dataBits: 8,
+    stopBits: 1,
+    parity: 'none',
+    flowControl: 'none'
+  }
+}
+```
+
+### HP/Aruba Device Console
+
+```typescript
+{
+  protocol: 'serial',
+  label: 'HP ProCurve Switch',
+  hostname: '/dev/ttyUSB0',
+  serialConfig: {
+    path: '/dev/ttyUSB0',
+    baudRate: 9600,
+    dataBits: 8,
+    stopBits: 1,
+    parity: 'none',
+    flowControl: 'none'
+  }
+}
+```
+
+### Legacy Equipment (7-E-1)
+
+Older systems often use "7-E-1" (7 data bits, even parity, 1 stop bit):
+
+```typescript
+{
+  protocol: 'serial',
+  label: 'Vintage Terminal',
+  hostname: 'COM1',
+  serialConfig: {
+    path: 'COM1',
+    baudRate: 9600,
+    dataBits: 7,
+    stopBits: 1,
+    parity: 'even',
+    flowControl: 'xon/xoff'
+  }
+}
+```
+
+## Setting Up Serial Connections
+
+### Create Serial Host
+
+1. Click **New Host**
+2. Select **Protocol**: Serial
+3. Enter **Label**: Descriptive name (e.g., "Cisco Switch Console")
+4. **Port Path**: Device path (e.g., `/dev/ttyUSB0`, `COM3`)
+5. Configure serial settings:
+   - **Baud Rate**: Match your device (default: 9600)
+   - **Data Bits**: Usually 8
+   - **Stop Bits**: Usually 1
+   - **Parity**: Usually None
+   - **Flow Control**: Usually None
+6. Click **Create**
+
+### Connect to Serial Device
+
+1. Double-click the serial host in your hosts list
+2. Netcatty opens the serial port
+3. Terminal displays device output
+4. Type commands to interact with device
+
+**First connection:**
+- You may need to press Enter to wake the device
+- Some devices show a login prompt, others show a command prompt
+- If no output appears, check baud rate and cable connection
+
+### Disconnect
+
+1. Close the terminal tab, or
+2. Click **Disconnect** in the connection menu
+3. Serial port is released for use by other applications
+
+## Troubleshooting
+
+### No Device Output
+
+**Symptoms:** Terminal opens but shows no text from device
+
+**Possible causes:**
+- Wrong baud rate (most common)
+- Device is powered off
+- Cable not connected properly
+- Wrong serial port selected
+
+**Debug steps:**
+1. Verify device is powered on
+2. Check cable connections (both ends)
+3. Try pressing Enter a few times (wake device)
+4. Try common baud rates: 9600, 115200
+5. Check device documentation for correct settings
+6. Use `screen` or `minicom` to test (Linux/macOS):
+   ```bash
+   screen /dev/ttyUSB0 9600
+   # Ctrl+A, K to exit
+   ```
+
+### Garbled Output
+
+**Symptoms:** Random characters, symbols, or box characters
+
+**Cause:** Baud rate mismatch
+
+**Solution:**
+1. Try different baud rates (9600, 19200, 38400, 57600, 115200)
+2. Consult device documentation
+3. For Cisco devices, try 9600 first
+4. For Linux/Raspberry Pi, try 115200 first
+
+### Permission Denied (Linux/macOS)
+
+**Symptoms:** "Cannot open /dev/ttyUSB0: Permission denied"
+
+**Cause:** User not in `dialout` or `uucp` group
+
+**Solution (Linux):**
+```bash
+# Check current groups
+groups
+
+# Add user to dialout group
+sudo usermod -a -G dialout $USER
+
+# Log out and log back in, or:
+newgrp dialout
+```
+
+**Solution (macOS):**
+No special permissions usually needed. If issues persist:
+```bash
+# Check ownership
+ls -l /dev/tty.*
+
+# May need to adjust permissions (temporary)
+sudo chmod 666 /dev/tty.usbserial-XXXX
+```
+
+### Device Busy
+
+**Symptoms:** "Device or resource busy"
+
+**Cause:** Another program has the serial port open
+
+**Solution:**
+```bash
+# Find what's using the port (Linux)
+sudo lsof /dev/ttyUSB0
+
+# Kill the process
+sudo kill <PID>
+
+# Common culprits: screen, minicom, ModemManager
+sudo systemctl stop ModemManager
+sudo systemctl disable ModemManager
+```
+
+### No Serial Device Found
+
+**Symptoms:** Port path doesn't exist
+
+**Possible causes:**
+- USB adapter not connected
+- Driver not installed
+- Cable fault
+
+**Solution:**
+1. Check physical connection
+2. Try a different USB port
+3. Check if device appears:
+   ```bash
+   # Linux
+   dmesg | tail
+   lsusb
+   
+   # macOS
+   ls /dev/tty.*
+   system_profiler SPUSBDataType
+   ```
+4. Install drivers:
+   - FTDI: Usually included in OS
+   - Prolific PL2303: May need driver from prolific.com.tw
+   - SiLabs CP210x: Install from silabs.com
+
+### Double Characters
+
+**Symptoms:** Typing "hello" shows "hheelllloo"
+
+**Cause:** Both local echo and remote echo are enabled
+
+**Solution:**
+1. Disable **Local Echo** in Netcatty serial config
+2. Or disable echo on the device:
+   - Cisco: (usually no setting)
+   - Linux: `stty -echo < /dev/ttyS0`
+
+### No Local Echo
+
+**Symptoms:** Typing shows nothing, but device responds
+
+**Cause:** Device doesn't echo, local echo disabled
+
+**Solution:**
+1. Enable **Local Echo** in Netcatty serial config
+2. Or enable echo on device (if supported)
+
+## Hardware Setup
+
+### USB-to-Serial Adapters
+
+Most modern computers lack built-in serial ports. Use a USB adapter:
+
+**Recommended adapters:**
+- **FTDI-based**: FT232R, FT234X (best compatibility, genuine only)
+- **SiLabs CP210x**: Good compatibility, lower cost
+- **Prolific PL2303**: Cheap but check for genuine chips (many clones have driver issues)
+
+**Avoid:** Generic no-name adapters (unreliable drivers)
+
+**Console cables:**
+- **Cisco console cable**: RJ45-to-DB9 or RJ45-to-USB (includes adapter)
+- **USB console cable**: Direct USB-to-RJ45 (Cisco compatible)
+- **FTDI cable**: Direct USB-to-TTL (3.3V or 5V) for Raspberry Pi, Arduino
+
+### Cable Pinouts
+
+**Standard RS-232 (DB9):**
+```
+Pin 2: RX (Receive)
+Pin 3: TX (Transmit)
+Pin 5: GND (Ground)
+Pin 7: RTS (optional, flow control)
+Pin 8: CTS (optional, flow control)
+```
+
+**Null modem:** Crosses TX/RX for connecting two DTE devices:
+```
+Device A    Null Modem    Device B
+Pin 2 (RX)  --------→     Pin 3 (TX)
+Pin 3 (TX)  ←--------     Pin 2 (RX)
+Pin 5 (GND) ←-------→     Pin 5 (GND)
+```
+
+**TTL Serial (3.3V/5V):**
+```
+Device          Adapter
+TX  -------→    RX
+RX  ←-------    TX
+GND ←------→    GND
+```
+
+**Voltage levels:**
+- **RS-232**: ±3V to ±15V (negative = logic 1)
+- **TTL 3.3V**: 0V = logic 0, 3.3V = logic 1 (Raspberry Pi, modern microcontrollers)
+- **TTL 5V**: 0V = logic 0, 5V = logic 1 (Arduino, older systems)
+
+**Important:** Don't connect 5V TTL to 3.3V devices (damage risk). Use level shifter or 3.3V adapter.
+
+### Connecting Raspberry Pi
+
+**GPIO pins:**
+```
+Pin 6:  GND (black)
+Pin 8:  TXD (white) → RX on adapter
+Pin 10: RXD (green) → TX on adapter
+```
+
+**Enable serial console:**
+```bash
+# Edit /boot/config.txt
+sudo nano /boot/config.txt
+
+# Add or uncomment:
+enable_uart=1
+
+# Reboot
+sudo reboot
+```
+
+**Disable Bluetooth (Pi 3/4, frees up hardware UART):**
+```bash
+# Add to /boot/config.txt
+dtoverlay=disable-bt
+
+# Disable bluetooth service
+sudo systemctl disable hciuart
+```
+
+## Best Practices
+
+1. **Label Your Cables**: Use labels to identify which device each cable connects to
+2. **Keep Spare Adapters**: USB adapters fail; have backups
+3. **Use Genuine Chips**: FTDI, SiLabs originals work better than clones
+4. **Document Settings**: Note baud rate and settings for each device
+5. **Test Before Deploying**: Verify serial access works before racking equipment
+6. **Cable Length Limits**: RS-232 reliable up to 15m (50ft), use repeaters for longer distances
+7. **Avoid Ground Loops**: Use optically isolated adapters for electrically noisy environments
+8. **Unplug Safely**: Don't disconnect serial cables while device is powered (may damage port)
+
+## Comparison with Other Methods
+
+### Serial vs SSH
+
+| Feature | Serial Console | SSH |
+|---------|----------------|-----|
+| Requires network | ❌ No | ✅ Yes |
+| Boot-time access | ✅ Yes | ❌ No |
+| BIOS/bootloader | ✅ Yes | ❌ No |
+| Encryption | ❌ No | ✅ Yes |
+| Multi-user | ❌ One at a time | ✅ Multiple sessions |
+| Speed | ~11.5 KB/s (115200) | Mbps+ |
+| Out-of-band | ✅ Yes | ❌ No |
+
+**Use serial when:**
+- Setting up a device initially (no network yet)
+- Troubleshooting network issues (can't reach via SSH)
+- Accessing bootloader or BIOS
+- Recovering from failed OS updates
+- Physical access to device
+
+**Use SSH when:**
+- Device has working network
+- Remote administration
+- Multiple concurrent sessions needed
+- File transfers required
+- Secure communication required

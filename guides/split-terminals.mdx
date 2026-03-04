@@ -1,0 +1,500 @@
+---
+title: Split Terminals
+description: Master split panes, keyboard navigation, and layout management
+icon: 'grip-lines'
+---
+
+## Overview
+
+Split terminals allow you to divide your workspace into multiple panes, each with its own terminal session. This is essential for monitoring multiple servers, comparing outputs, or working on related tasks simultaneously.
+
+## Creating Splits
+
+### Split Directions
+
+Netcatty supports two split directions:
+
+<CardGroup cols={2}>
+  <Card title="Horizontal Split" icon="minus">
+    Divides a pane top-to-bottom.
+    
+    ```
+    Before:        After:
+    ┌─────────┐    ┌─────────┐
+    │         │    │  Top    │
+    │  Pane   │ →  ├─────────┤
+    │         │    │ Bottom  │
+    └─────────┘    └─────────┘
+    ```
+  </Card>
+  
+  <Card title="Vertical Split" icon="grip-lines-vertical">
+    Divides a pane left-to-right.
+    
+    ```
+    Before:        After:
+    ┌─────────┐    ┌────┬────┐
+    │         │    │    │    │
+    │  Pane   │ →  │Left│Right│
+    │         │    │    │    │
+    └─────────┘    └────┴────┘
+    ```
+  </Card>
+</CardGroup>
+
+### Methods to Split
+
+<Tabs>
+  <Tab title="Keyboard (Recommended)">
+    **Horizontal Split (top/bottom):**
+    - **Mac:** `Cmd+D`
+    - **Windows/Linux:** `Ctrl+Shift+D`
+    
+    **Vertical Split (left/right):**
+    - **Mac:** `Cmd+Shift+D`
+    - **Windows/Linux:** `Ctrl+Shift+E`
+    
+    <Tip>
+      Think of `D` as "Divide" - no shift for horizontal, shift for vertical.
+    </Tip>
+  </Tab>
+  
+  <Tab title="Context Menu">
+    1. Right-click anywhere in the terminal
+    2. Select **Split Horizontal** or **Split Vertical**
+    3. A new pane appears with a connection prompt
+  </Tab>
+  
+  <Tab title="Toolbar">
+    1. Click the split button in the terminal toolbar
+    2. Choose direction from dropdown
+    3. New pane is created
+  </Tab>
+</Tabs>
+
+## Split Behavior
+
+### Initial Split
+
+When you split a pane:
+1. Current pane becomes one half
+2. New pane appears as the other half
+3. Both panes get equal size (50/50)
+4. New pane shows the connection selector
+5. Focus moves to the new pane
+
+### Choosing Split Direction
+
+<AccordionGroup>
+  <Accordion title="Use Horizontal Split When...">
+    - Viewing logs (need vertical scrolling)
+    - Comparing output from two servers
+    - Running commands and monitoring results
+    - Working with wide terminals (code editors)
+  </Accordion>
+  
+  <Accordion title="Use Vertical Split When...">
+    - Monitoring multiple narrow streams (htop, watch)
+    - Editing files side-by-side
+    - Comparing configurations
+    - Working on widescreen monitors
+  </Accordion>
+</AccordionGroup>
+
+## Keyboard Navigation
+
+Move focus between panes without touching your mouse.
+
+### Focus Movement
+
+<ParamField path="move-focus" type="keyboard shortcut">
+  Navigate between split panes using arrow keys
+</ParamField>
+
+| Direction | Mac | Windows/Linux |
+|-----------|-----|---------------|
+| Up | `Cmd+Opt+↑` | `Ctrl+Alt+↑` |
+| Down | `Cmd+Opt+↓` | `Ctrl+Alt+↓` |
+| Left | `Cmd+Opt+←` | `Ctrl+Alt+←` |
+| Right | `Cmd+Opt+→` | `Ctrl+Alt+→` |
+
+### Navigation Rules
+
+1. **Spatial Navigation:** Netcatty calculates pane positions and moves to the closest pane in the requested direction.
+
+2. **Wraparound:** When no pane exists in a direction, focus wraps to the opposite edge.
+
+3. **Overlap Detection:** For horizontal movement, panes that vertically overlap are prioritized. For vertical movement, panes that horizontally overlap are prioritized.
+
+### Example Navigation
+
+```
+Layout:
+┌──────┬──────┬──────┐
+│  1   │  2   │  3   │
+├──────┴──────┼──────┤
+│      4      │  5   │
+└─────────────┴──────┘
+
+From Pane 1:
+- Right → Pane 2 (horizontally adjacent)
+- Down → Pane 4 (overlaps horizontally)
+
+From Pane 2:
+- Left → Pane 1
+- Right → Pane 3
+- Down → Pane 4 (overlaps horizontally)
+
+From Pane 4:
+- Up → Pane 2 (overlaps horizontally)
+- Right → Pane 5
+- Left → Wraps to Pane 5
+```
+
+<Info>
+  The navigation algorithm ensures intuitive movement even in complex nested layouts.
+</Info>
+
+## Resizing Panes
+
+### Mouse Resize
+
+1. **Hover** over the divider between two panes
+2. Cursor changes to a **resize handle** (↔ or ↕)
+3. **Click and drag** to adjust size
+4. Release to set the new size
+
+### Size Distribution
+
+Pane sizes are stored as **relative proportions** (not absolute pixels).
+
+**Example:**
+```typescript
+{
+  type: "split",
+  direction: "vertical",
+  children: [pane1, pane2],
+  sizes: [0.3, 0.7] // 30% and 70%
+}
+```
+
+When you resize:
+- Dragging the divider adjusts the ratio
+- Other panes in the split adjust proportionally
+- Layout adapts to window resizes automatically
+
+### Minimum Size
+
+Panes have a minimum size (typically 200px) to prevent unusable terminals.
+
+## Closing Panes
+
+### Close Methods
+
+<Tabs>
+  <Tab title="Keyboard">
+    **Mac:** `Cmd+W`
+    
+    **Windows/Linux:** `Ctrl+W`
+    
+    Closes the currently focused pane.
+  </Tab>
+  
+  <Tab title="Tab Close Button">
+    Click the **×** on the pane's tab (if visible).
+  </Tab>
+  
+  <Tab title="Context Menu">
+    Right-click → **Close Pane**
+  </Tab>
+</Tabs>
+
+### Close Behavior
+
+When you close a pane:
+
+1. **From a Split:**
+   - The sibling pane expands to fill the space
+   - The parent split node is removed
+   - Sizes are recalculated
+
+2. **Last Pane in Workspace:**
+   - The entire workspace tab closes
+   - Session is disconnected
+
+**Example:**
+
+```
+Before (3 panes):     Close Pane 2:       Close Pane 3:
+┌────┬────┬────┐      ┌─────────┬────┐   ┌──────────────┐
+│ 1  │ 2  │ 3  │  →   │    1    │ 3  │ → │      1       │
+└────┴────┴────┘      └─────────┴────┘   └──────────────┘
+```
+
+## Layout Management
+
+### Simple Layouts
+
+<Tabs>
+  <Tab title="Side-by-Side">
+    Two panes, equal width.
+    
+    ```
+    ┌──────────┬──────────┐
+    │          │          │
+    │  Left    │  Right   │
+    │          │          │
+    └──────────┴──────────┘
+    ```
+    
+    **Creating:**
+    1. Start with one pane
+    2. Vertical split (`Cmd+Shift+D`)
+  </Tab>
+  
+  <Tab title="Top-and-Bottom">
+    Two panes, equal height.
+    
+    ```
+    ┌────────────────────┐
+    │        Top         │
+    ├────────────────────┤
+    │       Bottom       │
+    └────────────────────┘
+    ```
+    
+    **Creating:**
+    1. Start with one pane
+    2. Horizontal split (`Cmd+D`)
+  </Tab>
+  
+  <Tab title="Quad Layout">
+    Four panes in a grid.
+    
+    ```
+    ┌──────────┬──────────┐
+    │    1     │    2     │
+    ├──────────┼──────────┤
+    │    3     │    4     │
+    └──────────┴──────────┘
+    ```
+    
+    **Creating:**
+    1. Start with one pane
+    2. Vertical split → 2 panes
+    3. Horizontal split left pane → 3 panes
+    4. Horizontal split right pane → 4 panes
+  </Tab>
+</Tabs>
+
+### Complex Layouts
+
+Nested splits create sophisticated arrangements.
+
+**Example: Main + Sidebar + Footer**
+
+```
+┌────────────────┬──────┐
+│                │      │
+│      Main      │ Side │
+│                │      │
+├────────────────┴──────┤
+│       Footer          │
+└───────────────────────┘
+```
+
+**Structure:**
+
+```typescript
+{
+  type: "split",
+  direction: "horizontal",
+  sizes: [0.8, 0.2],
+  children: [
+    {
+      type: "split",
+      direction: "vertical",
+      sizes: [0.7, 0.3],
+      children: [
+        { type: "pane", sessionId: "main" },
+        { type: "pane", sessionId: "sidebar" }
+      ]
+    },
+    { type: "pane", sessionId: "footer" }
+  ]
+}
+```
+
+**Creating Steps:**
+1. Horizontal split → Main & Footer
+2. Vertical split on Main → Main & Sidebar
+3. Resize dividers to taste
+
+## Advanced Features
+
+### Broadcast Mode
+
+Send input to **all panes** simultaneously.
+
+**Activation:**
+- Click the **Broadcast** icon in toolbar
+- Keyboard: `Cmd+B` (Mac) / `Ctrl+B` (Windows/Linux)
+
+**Visual Indicator:**
+- All pane borders highlight in broadcast mode
+- Broadcast icon shows "active" state
+
+**Use Cases:**
+- Run same command on multiple servers
+- Parallel software updates
+- Synchronized configuration
+
+<Warning>
+  Be cautious with broadcast mode in production. A single destructive command affects all panes.
+</Warning>
+
+### Focus Indicators
+
+The active pane is indicated by:
+- **Border highlight** (accent color)
+- **Brighter background**
+- **Cursor blinking**
+
+Other panes are slightly dimmed.
+
+### Drag and Drop
+
+Rearrange panes by dragging tabs:
+
+1. Click and hold a tab
+2. Drag to another position
+3. Drop to move the pane
+
+<Info>
+  Drag-and-drop for panes is a planned feature. Currently, use split and close operations to rearrange.
+</Info>
+
+## Keyboard Shortcuts Reference
+
+| Action | Mac | Windows/Linux | Description |
+|--------|-----|---------------|-------------|
+| **Splits** |
+| Horizontal split | `Cmd+D` | `Ctrl+Shift+D` | Split current pane top/bottom |
+| Vertical split | `Cmd+Shift+D` | `Ctrl+Shift+E` | Split current pane left/right |
+| **Navigation** |
+| Move focus up | `Cmd+Opt+↑` | `Ctrl+Alt+↑` | Focus pane above |
+| Move focus down | `Cmd+Opt+↓` | `Ctrl+Alt+↓` | Focus pane below |
+| Move focus left | `Cmd+Opt+←` | `Ctrl+Alt+←` | Focus pane to left |
+| Move focus right | `Cmd+Opt+→` | `Ctrl+Alt+→` | Focus pane to right |
+| **Management** |
+| Close pane | `Cmd+W` | `Ctrl+W` | Close focused pane |
+| Broadcast mode | `Cmd+B` | `Ctrl+B` | Toggle broadcast to all panes |
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Layout Design">
+    - **Keep it simple:** 2-4 panes is ideal for most tasks
+    - **Match your workflow:** Horizontal for logs, vertical for monitoring
+    - **Use unequal sizes:** Make the primary pane larger (60-70%)
+  </Accordion>
+  
+  <Accordion title="Navigation Efficiency">
+    - **Learn keyboard shortcuts:** 10x faster than mouse
+    - **Consistent layouts:** Muscle memory for common arrangements
+    - **Focus indicators:** Always know which pane is active
+  </Accordion>
+  
+  <Accordion title="Performance">
+    - **Limit active panes:** 4-6 max for smooth performance
+    - **Close disconnected panes:** Free up resources
+    - **Use workspaces:** Switch between layouts instead of keeping all open
+  </Accordion>
+</AccordionGroup>
+
+## Common Layouts
+
+### Development Setup
+
+```
+┌─────────────────┬──────┐
+│                 │      │
+│   Dev Server    │ Logs │
+│                 │      │
+├─────────────────┴──────┤
+│      Database          │
+└────────────────────────┘
+```
+
+**Use:** Web development with live logs and database access.
+
+### Server Monitoring
+
+```
+┌──────┬──────┬──────┐
+│ Web1 │ Web2 │ Web3 │
+├──────┴──────┴──────┤
+│   Load Balancer    │
+└────────────────────┘
+```
+
+**Use:** Monitor multiple web servers and load balancer simultaneously.
+
+### Debugging
+
+```
+┌────────────┬──────────┐
+│            │  Debug   │
+│  Main App  │  Console │
+│            ├──────────┤
+│            │  Logs    │
+└────────────┴──────────┘
+```
+
+**Use:** Main application with debug console and logs side-by-side.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Split Not Creating">
+    **Possible Causes:**
+    - Pane is already at minimum size
+    - Workspace at maximum pane limit
+    
+    **Solution:**
+    - Resize the window to give more space
+    - Close unused panes
+  </Accordion>
+  
+  <Accordion title="Focus Not Moving">
+    **Cause:** No pane exists in that direction
+    
+    **Solution:**
+    - Check layout visually
+    - Remember wraparound behavior
+    - Try a different direction
+  </Accordion>
+  
+  <Accordion title="Sizes Not Saving">
+    **Solution:**
+    - Wait a moment after resizing for auto-save
+    - Close and reopen workspace to verify
+    - Check browser console for errors
+  </Accordion>
+</AccordionGroup>
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Workspace Sessions" icon="table-cells-large" href="/guides/workspace-sessions">
+    Create and manage workspaces
+  </Card>
+  
+  <Card title="Keyboard Shortcuts" icon="keyboard" href="/guides/keyboard-shortcuts">
+    Master all Netcatty shortcuts
+  </Card>
+  
+  <Card title="Snippets" icon="code" href="/guides/snippets">
+    Run commands across multiple panes
+  </Card>
+</CardGroup>

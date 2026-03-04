@@ -1,0 +1,307 @@
+---
+title: Installation
+description: Download and install Netcatty on macOS, Windows, or Linux
+---
+
+# Installation
+
+Netcatty is available as a standalone application for macOS, Windows, and Linux. Follow the instructions below for your operating system.
+
+## Download
+
+Download the latest release for your platform from the official GitHub releases page:
+
+<Card title="GitHub Releases" icon="github" href="https://github.com/binaricat/Netcatty/releases/latest">
+  Download the latest version of Netcatty for your operating system
+</Card>
+
+## Platform Support
+
+| Operating System | Architectures | Package Formats |
+|-----------------|---------------|------------------|
+| macOS | x64, arm64 (Apple Silicon) | DMG, ZIP |
+| Windows | x64, arm64 | NSIS Installer |
+| Linux | x64, arm64 | AppImage, DEB, RPM |
+
+---
+
+## macOS Installation
+
+<Steps>
+  <Step title="Download the DMG or ZIP file">
+    Download the macOS release from [GitHub Releases](https://github.com/binaricat/Netcatty/releases/latest). Choose either:
+    - **DMG** - Disk image with drag-to-install
+    - **ZIP** - Compressed application bundle
+    
+    Both formats support Universal binaries (works on Intel and Apple Silicon Macs).
+  </Step>
+
+  <Step title="Install the application">
+    **For DMG:**
+    1. Open the downloaded DMG file
+    2. Drag **Netcatty.app** to your Applications folder
+    
+    **For ZIP:**
+    1. Extract the ZIP archive
+    2. Move **Netcatty.app** to your Applications folder
+  </Step>
+
+  <Step title="Remove quarantine attribute">
+    <Warning>
+      Since Netcatty is not code-signed, macOS Gatekeeper will block it from opening. You need to remove the quarantine attribute.
+    </Warning>
+
+    Open Terminal and run:
+
+    ```bash
+    xattr -cr /Applications/Netcatty.app
+    ```
+
+    **Alternative method:**
+    1. Right-click (or Control-click) **Netcatty.app**
+    2. Select **Open** from the context menu
+    3. Click **Open** in the security dialog that appears
+    
+    You only need to do this once. After the first launch, you can open Netcatty normally.
+  </Step>
+
+  <Step title="Launch Netcatty">
+    Open Netcatty from your Applications folder or Launchpad. The app is ready to use!
+  </Step>
+</Steps>
+
+---
+
+## Windows Installation
+
+<Steps>
+  <Step title="Download the installer">
+    Download the Windows installer from [GitHub Releases](https://github.com/binaricat/Netcatty/releases/latest).
+    
+    Choose the appropriate version:
+    - **x64** - For 64-bit Intel/AMD processors
+    - **arm64** - For ARM64 processors (Windows on ARM)
+  </Step>
+
+  <Step title="Run the installer">
+    1. Double-click the downloaded `.exe` installer file
+    2. Follow the installation wizard prompts
+    3. Choose the installation directory (default: `C:\Program Files\Netcatty`)
+    4. Select whether to create desktop and Start Menu shortcuts
+  </Step>
+
+  <Step title="Launch Netcatty">
+    After installation completes:
+    - Launch from the Start Menu
+    - Double-click the desktop shortcut (if created)
+    - Run from the installation directory
+  </Step>
+</Steps>
+
+<Note>
+  Windows may show a SmartScreen warning since the app is not code-signed. Click **More info** → **Run anyway** to proceed.
+</Note>
+
+---
+
+## Linux Installation
+
+Netcatty provides multiple package formats for Linux. Choose the one that works best for your distribution.
+
+### AppImage (Universal)
+
+<Steps>
+  <Step title="Download the AppImage">
+    Download the `.AppImage` file from [GitHub Releases](https://github.com/binaricat/Netcatty/releases/latest).
+    
+    Choose your architecture:
+    - **x64** - For 64-bit Intel/AMD systems
+    - **arm64** - For ARM64 systems
+  </Step>
+
+  <Step title="Make it executable">
+    ```bash
+    chmod +x Netcatty-*.AppImage
+    ```
+  </Step>
+
+  <Step title="Run the AppImage">
+    ```bash
+    ./Netcatty-*.AppImage
+    ```
+    
+    <Note>
+      AppImages are self-contained and don't require installation. You can move the file to any location and run it directly.
+    </Note>
+  </Step>
+</Steps>
+
+### DEB Package (Debian/Ubuntu)
+
+For Debian, Ubuntu, Linux Mint, and derivatives:
+
+<Steps>
+  <Step title="Download the DEB package">
+    Download the `.deb` file from [GitHub Releases](https://github.com/binaricat/Netcatty/releases/latest).
+  </Step>
+
+  <Step title="Install with dpkg">
+    ```bash
+    sudo dpkg -i netcatty_*.deb
+    ```
+    
+    If there are dependency issues, run:
+    ```bash
+    sudo apt-get install -f
+    ```
+  </Step>
+
+  <Step title="Launch Netcatty">
+    Run from your application menu or terminal:
+    ```bash
+    netcatty
+    ```
+  </Step>
+</Steps>
+
+### RPM Package (Red Hat/Fedora/CentOS)
+
+For Red Hat, Fedora, CentOS, Rocky Linux, and derivatives:
+
+<Steps>
+  <Step title="Download the RPM package">
+    Download the `.rpm` file from [GitHub Releases](https://github.com/binaricat/Netcatty/releases/latest).
+  </Step>
+
+  <Step title="Install with rpm or dnf">
+    **Using dnf (Fedora, CentOS 8+, Rocky Linux):**
+    ```bash
+    sudo dnf install netcatty-*.rpm
+    ```
+    
+    **Using rpm (older systems):**
+    ```bash
+    sudo rpm -i netcatty-*.rpm
+    ```
+  </Step>
+
+  <Step title="Launch Netcatty">
+    Run from your application menu or terminal:
+    ```bash
+    netcatty
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Prerequisites
+
+Netcatty has no external dependencies for normal use. However, certain features require additional tools:
+
+<Note>
+  **Optional dependencies:**
+  - **Mosh** - For Mosh protocol support (install via package manager: `apt install mosh`, `dnf install mosh`, or `brew install mosh`)
+  - **OpenSSH** - Usually pre-installed on macOS and Linux; for Windows, install via [OpenSSH for Windows](https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse)
+</Note>
+
+---
+
+## Verifying Installation
+
+After installation, verify that Netcatty is working correctly:
+
+1. Launch the application
+2. You should see the welcome screen with the Vault view
+3. Try creating a local terminal session to test basic functionality
+
+<img src="/screenshots/main-window-light.png" alt="Netcatty Welcome Screen" />
+
+---
+
+## Updating Netcatty
+
+To update to a newer version:
+
+1. Download the latest release from GitHub
+2. Follow the same installation steps for your platform
+3. The new version will replace the old one
+4. Your settings, hosts, and SSH keys are preserved (stored in your user data directory)
+
+<Warning>
+  **Backup recommendation:** Before updating, consider backing up your configuration:
+  - **macOS/Linux**: `~/.config/netcatty/`
+  - **Windows**: `%APPDATA%\netcatty\`
+</Warning>
+
+---
+
+## Uninstalling Netcatty
+
+### macOS
+```bash
+# Remove application
+rm -rf /Applications/Netcatty.app
+
+# Remove user data (optional)
+rm -rf ~/.config/netcatty
+```
+
+### Windows
+1. Go to **Settings** → **Apps** → **Installed apps**
+2. Find **Netcatty** and click **Uninstall**
+3. Optionally, delete user data from `%APPDATA%\netcatty`
+
+### Linux
+
+**AppImage:**
+```bash
+rm Netcatty-*.AppImage
+rm -rf ~/.config/netcatty  # Optional: remove user data
+```
+
+**DEB:**
+```bash
+sudo apt remove netcatty
+rm -rf ~/.config/netcatty  # Optional: remove user data
+```
+
+**RPM:**
+```bash
+sudo dnf remove netcatty
+rm -rf ~/.config/netcatty  # Optional: remove user data
+```
+
+---
+
+## Troubleshooting
+
+### macOS: "Netcatty is damaged and can't be opened"
+
+This is caused by Gatekeeper. Run the quarantine removal command:
+```bash
+xattr -cr /Applications/Netcatty.app
+```
+
+### Linux: AppImage won't run
+
+Ensure you have FUSE installed:
+```bash
+# Ubuntu/Debian
+sudo apt install fuse libfuse2
+
+# Fedora/RHEL
+sudo dnf install fuse fuse-libs
+```
+
+### Windows: SmartScreen warning
+
+Click **More info** → **Run anyway**. This warning appears because the app is not code-signed.
+
+---
+
+## Next Steps
+
+<Card title="Quick Start Guide" icon="rocket" href="/quickstart">
+  Learn how to add your first host and connect to remote servers
+</Card>

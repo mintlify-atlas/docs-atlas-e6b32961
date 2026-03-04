@@ -1,0 +1,685 @@
+---
+title: Troubleshooting
+description: Diagnose and fix common connection issues, errors, and problems
+icon: wrench
+---
+
+This guide covers common issues with Netcatty and how to resolve them.
+
+## Connection Issues
+
+### SSH Connection Refused
+
+**Symptoms:**
+- Error: "Connection refused"
+- Cannot establish SSH connection
+
+**Causes and Solutions:**
+
+<AccordionGroup>
+  <Accordion title="SSH server not running">
+    **Check if SSH is running:**
+    ```bash
+    # Linux
+    sudo systemctl status sshd
+    sudo systemctl status ssh
+
+    # macOS
+    sudo systemsetup -getremotelogin
+    ```
+
+    **Start SSH server:**
+    ```bash
+    # Linux
+    sudo systemctl start sshd
+
+    # macOS
+    sudo systemsetup -setremotelogin on
+    ```
+  </Accordion>
+
+  <Accordion title="Wrong port">
+    **Default SSH port is 22.** Check if server uses a custom port:
+    ```bash
+    # On the server
+    sudo grep "^Port" /etc/ssh/sshd_config
+    ```
+
+    **Update port in Netcatty:**
+    1. Open host details
+    2. Update **Port** field
+    3. Save and reconnect
+  </Accordion>
+
+  <Accordion title="Firewall blocking">
+    **Check firewall rules:**
+    ```bash
+    # Linux (iptables)
+    sudo iptables -L -n | grep 22
+
+    # Linux (ufw)
+    sudo ufw status
+
+    # macOS
+    sudo /usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate
+    ```
+
+    **Allow SSH through firewall:**
+    ```bash
+    # Linux (ufw)
+    sudo ufw allow 22/tcp
+
+    # CentOS/RHEL (firewalld)
+    sudo firewall-cmd --permanent --add-service=ssh
+    sudo firewall-cmd --reload
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Authentication Failed
+
+**Symptoms:**
+- Error: "Authentication failed"
+- Password/key rejected
+
+**Troubleshooting:**
+
+<Steps>
+  <Step title="Verify credentials">
+    - Double-check username (case-sensitive)
+    - Verify password is correct
+    - Ensure no extra spaces in username/password fields
+  </Step>
+
+  <Step title="Check key permissions">
+    SSH requires strict permissions on key files:
+    ```bash
+    # Private key must be readable only by owner
+    chmod 600 ~/.ssh/id_ed25519
+    chmod 600 ~/.ssh/id_rsa
+
+    # Public key can be world-readable
+    chmod 644 ~/.ssh/id_ed25519.pub
+
+    # .ssh directory
+    chmod 700 ~/.ssh
+    ```
+  </Step>
+
+  <Step title="Verify public key on server">
+    ```bash
+    # Check authorized_keys file
+    cat ~/.ssh/authorized_keys
+
+    # Ensure correct permissions
+    chmod 600 ~/.ssh/authorized_keys
+    chmod 700 ~/.ssh
+    ```
+  </Step>
+
+  <Step title="Check server configuration">
+    ```bash
+    # View SSH server config
+    sudo cat /etc/ssh/sshd_config | grep -E "PubkeyAuthentication|PasswordAuthentication"
+
+    # Ensure pubkey auth is enabled
+    PubkeyAuthentication yes
+
+    # If using password auth
+    PasswordAuthentication yes
+    ```
+  </Step>
+
+  <Step title="Check server logs">
+    ```bash
+    # Linux (most distros)
+    sudo tail -f /var/log/auth.log
+    sudo tail -f /var/log/secure  # CentOS/RHEL
+
+    # macOS
+    log stream --predicate 'process == "sshd"' --level debug
+    ```
+  </Step>
+</Steps>
+
+### Algorithm Negotiation Failed
+
+**Symptoms:**
+- Error: "no matching key exchange method found"
+- Error: "no matching cipher found"
+- Error: "no matching host key type found"
+
+**Solution:**
+
+Enable **Legacy SSH Algorithms** for the host:
+
+1. Open host details panel
+2. Navigate to **Advanced Settings**
+3. Enable **Legacy SSH Algorithms**
+4. Save and reconnect
+
+See [Legacy Algorithms Guide](/advanced/legacy-algorithms) for details.
+
+### Timeout Issues
+
+**Symptoms:**
+- Connection times out
+- Long delay before error
+
+**Causes:**
+
+<AccordionGroup>
+  <Accordion title="Network connectivity">
+    **Test basic connectivity:**
+    ```bash
+    # Ping the host
+    ping hostname
+
+    # Test port accessibility
+    nc -zv hostname 22
+    telnet hostname 22
+    ```
+
+    **Check routing:**
+    ```bash
+    # Trace route to host
+    traceroute hostname  # Linux/macOS
+    tracert hostname     # Windows
+    ```
+  </Accordion>
+
+  <Accordion title="DNS resolution">
+    **Test DNS:**
+    ```bash
+    # Resolve hostname
+    nslookup hostname
+    dig hostname
+
+    # Try IP address directly
+    # If IP works but hostname doesn't, it's a DNS issue
+    ```
+
+    **Fix DNS issues:**
+    - Use IP address instead of hostname in Netcatty
+    - Update `/etc/hosts` with hostname mapping
+    - Configure DNS servers correctly
+  </Accordion>
+
+  <Accordion title="Network routing">
+    **Common scenarios:**
+    - Host on different subnet (need gateway)
+    - VPN required for access
+    - Firewall blocking outbound connections
+    - NAT/port forwarding misconfigured
+
+    **Solutions:**
+    - Connect to VPN first
+    - Use jump host / bastion
+    - Configure proxy in Netcatty
+    - Check firewall rules on client side
+  </Accordion>
+</AccordionGroup>
+
+### Host Key Changed
+
+**Symptoms:**
+- Warning: "REMOTE HOST IDENTIFICATION HAS CHANGED"
+- Connection rejected
+
+**This happens when:**
+- Server was reinstalled
+- Server SSH keys regenerated
+- Man-in-the-middle attack (rare but possible)
+
+**Resolution:**
+
+<Steps>
+  <Step title="Verify the change is legitimate">
+    Contact server administrator to confirm:
+    - Was the server recently reinstalled?
+    - Were SSH host keys regenerated?
+    - Is this expected?
+  </Step>
+
+  <Step title="Remove old key">
+    In Netcatty:
+    1. Go to **Vault > Known Hosts**
+    2. Find the host entry
+    3. Delete the old key
+    4. Reconnect and accept new key
+  </Step>
+
+  <Step title="Security check">
+    If the change was unexpected:
+    - Verify server identity through another channel
+    - Check server logs for security incidents
+    - Compare key fingerprint with server output:
+    ```bash
+    # On the server, view host key fingerprint
+    ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
+    ssh-keygen -lf /etc/ssh/ssh_host_rsa_key.pub
+    ```
+  </Step>
+</Steps>
+
+## SFTP Issues
+
+### SFTP Connection Failed
+
+**Symptoms:**
+- SFTP fails but SSH terminal works
+- Error: "SFTP subsystem unavailable"
+
+**Causes:**
+
+<AccordionGroup>
+  <Accordion title="SFTP subsystem disabled">
+    **Check server configuration:**
+    ```bash
+    # View sshd_config
+    sudo grep -i sftp /etc/ssh/sshd_config
+
+    # Should see:
+    Subsystem sftp /usr/lib/openssh/sftp-server
+    # or similar path depending on OS
+    ```
+
+    **If missing, add it:**
+    ```bash
+    # Edit /etc/ssh/sshd_config
+    sudo nano /etc/ssh/sshd_config
+
+    # Add line:
+    Subsystem sftp /usr/lib/openssh/sftp-server
+
+    # Restart SSH
+    sudo systemctl restart sshd
+    ```
+  </Accordion>
+
+  <Accordion title="Permission issues">
+    **Check permissions on remote directories:**
+    ```bash
+    # User must have read/write access
+    ls -la /path/to/directory
+
+    # Fix ownership
+    sudo chown -R username:username /path/to/directory
+
+    # Fix permissions
+    chmod 755 /path/to/directory
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### File Transfer Stalls
+
+**Symptoms:**
+- Transfers start but never complete
+- Progress bar frozen
+
+**Solutions:**
+
+1. **Cancel and retry:** Click cancel icon on transfer, try again
+2. **Check disk space:**
+   ```bash
+   # On remote server
+   df -h
+   ```
+3. **Check network stability:** Large files may fail on unstable networks
+4. **Try compressed upload:** Enable in Settings > SFTP > Use compressed upload
+
+### Permission Denied
+
+**Symptoms:**
+- Can browse but can't upload/download
+- Error: "Permission denied"
+
+**Solutions:**
+
+<Steps>
+  <Step title="Check file/directory permissions">
+    ```bash
+    # View permissions
+    ls -la /path/to/file
+
+    # Make writable
+    chmod 644 file      # Files
+    chmod 755 directory # Directories
+    ```
+  </Step>
+
+  <Step title="Check parent directory permissions">
+    All parent directories must be executable:
+    ```bash
+    chmod +x /home
+    chmod +x /home/username
+    chmod +x /home/username/directory
+    ```
+  </Step>
+
+  <Step title="Try SFTP with sudo (if configured)">
+    Some systems require sudo for certain paths:
+    1. Open host details in Netcatty
+    2. Enable **SFTP Sudo** option
+    3. Reconnect (will prompt for password)
+  </Step>
+</Steps>
+
+## Terminal Issues
+
+### Terminal Not Displaying Correctly
+
+**Symptoms:**
+- Garbled text
+- Wrong colors
+- Formatting issues
+
+**Solutions:**
+
+<AccordionGroup>
+  <Accordion title="Wrong terminal type">
+    **Change terminal emulation type:**
+    1. **Settings > Terminal > Terminal Emulation Type**
+    2. Try different values:
+       - `xterm-256color` (default, most compatible)
+       - `xterm-16color` (for older systems)
+       - `xterm` (basic, maximum compatibility)
+    3. Reconnect
+  </Accordion>
+
+  <Accordion title="Character encoding issues">
+    **Set charset for host:**
+    1. Open host details
+    2. Set **Charset** (e.g., UTF-8, GB18030, ISO-8859-1)
+    3. Reconnect
+  </Accordion>
+
+  <Accordion title="Font rendering issues">
+    **Try different font:**
+    1. **Settings > Terminal > Font Family**
+    2. Use monospace fonts:
+       - JetBrains Mono (default)
+       - Fira Code
+       - Source Code Pro
+       - Consolas (Windows)
+    3. Adjust **Font Size** if text is too small/large
+  </Accordion>
+</AccordionGroup>
+
+### Copy/Paste Not Working
+
+**Symptoms:**
+- Can't copy from terminal
+- Can't paste to terminal
+
+**Solutions:**
+
+<Steps>
+  <Step title="Check keyboard shortcuts">
+    **Settings > Keyboard Shortcuts** > Terminal:
+    - **Copy:** Cmd+C (Mac) / Ctrl+Shift+C (Windows/Linux)
+    - **Paste:** Cmd+V (Mac) / Ctrl+Shift+V (Windows/Linux)
+
+    Or customize to your preference.
+  </Step>
+
+  <Step title="Try right-click paste">
+    **Settings > Terminal > Right Click Behavior:**
+    - Set to **Paste** for right-click to paste
+    - Set to **Context Menu** to access paste from menu
+  </Step>
+
+  <Step title="Check bracketed paste">
+    If seeing `^[[200~` artifacts:
+    1. **Settings > Terminal**
+    2. Enable **Disable Bracketed Paste Mode**
+    3. Reconnect
+  </Step>
+</Steps>
+
+### Terminal Performance Issues
+
+**Symptoms:**
+- Slow scrolling
+- Lag when typing
+- High CPU usage
+
+**Solutions:**
+
+<AccordionGroup>
+  <Accordion title="Reduce scrollback buffer">
+    **Settings > Terminal > Scrollback:**
+    - Default: 10,000 lines
+    - Try: 1,000 or 5,000 for better performance
+  </Accordion>
+
+  <Accordion title="Change renderer">
+    **Settings > Terminal > Renderer Type:**
+    - `auto` (default) - Detects best option
+    - `webgl` - Faster, hardware-accelerated
+    - `canvas` - More compatible, slower
+
+    Try `canvas` if you see rendering glitches with WebGL.
+  </Accordion>
+
+  <Accordion title="Disable keyword highlighting">
+    If you have many/complex highlight rules:
+    1. **Settings > Terminal > Keyword Highlighting**
+    2. Disable or reduce number of active rules
+  </Accordion>
+
+  <Accordion title="Disable font ligatures">
+    **Settings > Terminal > Font Ligatures:**
+    - Disable if not needed
+    - Can improve performance on some systems
+  </Accordion>
+</AccordionGroup>
+
+## Serial Connection Issues
+
+### Port Not Found
+
+**Symptoms:**
+- Error: "Port does not exist"
+- Can't see serial port in list
+
+**Solutions:**
+
+<Steps>
+  <Step title="Check device is connected">
+    ```bash
+    # Linux
+    ls -l /dev/ttyUSB* /dev/ttyACM*
+    dmesg | grep tty
+
+    # macOS
+    ls -l /dev/cu.*
+    ls -l /dev/tty.*
+
+    # Windows (PowerShell)
+    Get-WmiObject Win32_SerialPort | Select-Object DeviceID,Description
+    ```
+  </Step>
+
+  <Step title="Install drivers (if needed)">
+    Common USB serial adapters need drivers:
+    - **FTDI:** Usually built-in on modern OS
+    - **Prolific (PL2303):** Download from manufacturer
+    - **Silicon Labs (CP210x):** Download from silabs.com
+  </Step>
+
+  <Step title="Check permissions (Linux)">
+    ```bash
+    # Add user to dialout group
+    sudo usermod -a -G dialout $USER
+
+    # Log out and log back in for changes to take effect
+    ```
+  </Step>
+</Steps>
+
+### No Output from Device
+
+**Symptoms:**
+- Connected but no text appears
+- Can't type commands
+
+**Troubleshooting:**
+
+1. **Check baud rate:** Must match device (common: 9600, 115200)
+2. **Check data bits:** Usually 8
+3. **Check parity:** Usually None
+4. **Check stop bits:** Usually 1
+5. **Check flow control:** Usually None
+6. **Try local echo:** Enable in serial config if device doesn't echo
+
+**Get device serial settings:**
+```bash
+# Many devices respond to break signal + Enter
+# Try different baud rates: 9600, 19200, 38400, 57600, 115200
+```
+
+## Mosh Issues
+
+### Mosh Not Working
+
+**Symptoms:**
+- Error: "mosh-server not found"
+- Connection fails
+
+**Solutions:**
+
+<Steps>
+  <Step title="Install mosh client locally">
+    ```bash
+    # macOS
+    brew install mosh
+
+    # Ubuntu/Debian
+    sudo apt install mosh
+
+    # CentOS/RHEL
+    sudo yum install mosh
+    ```
+  </Step>
+
+  <Step title="Install mosh server on remote">
+    ```bash
+    # Same commands as above, run on remote server
+    sudo apt install mosh
+    ```
+  </Step>
+
+  <Step title="Check firewall (UDP 60000-61000)">
+    ```bash
+    # Linux (ufw)
+    sudo ufw allow 60000:61000/udp
+
+    # CentOS/RHEL (firewalld)
+    sudo firewall-cmd --permanent --add-port=60000-61000/udp
+    sudo firewall-cmd --reload
+    ```
+  </Step>
+
+  <Step title="Specify mosh-server path (if non-standard)">
+    In Netcatty host config:
+    1. Set **Mosh Server Path:** `/usr/local/bin/mosh-server`
+    2. (Find path on server: `which mosh-server`)
+  </Step>
+</Steps>
+
+## Application Issues
+
+### Netcatty Won't Start
+
+**macOS: "App is damaged"**
+```bash
+# Remove quarantine attribute
+xattr -cr /Applications/Netcatty.app
+```
+
+**Windows: SmartScreen Warning**
+- Click "More info"
+- Click "Run anyway"
+- (App is not code-signed)
+
+**Linux: AppImage won't run**
+```bash
+# Make executable
+chmod +x Netcatty-*.AppImage
+
+# If FUSE errors
+sudo apt install fuse libfuse2  # Ubuntu/Debian
+./Netcatty-*.AppImage --appimage-extract-and-run
+```
+
+### High CPU/Memory Usage
+
+**Causes:**
+- Many active terminal sessions
+- Large scrollback buffers
+- Complex keyword highlighting
+- WebGL rendering issues
+
+**Solutions:**
+- Close unused terminal tabs
+- Reduce scrollback buffer size
+- Disable/simplify keyword highlighting
+- Switch to canvas renderer
+- Restart Netcatty periodically
+
+## Logs and Debugging
+
+### Enable Debug Logging
+
+Netcatty logs are written to:
+
+**macOS:**
+```bash
+~/Library/Logs/Netcatty/
+```
+
+**Windows:**
+```powershell
+%APPDATA%\Netcatty\logs\
+```
+
+**Linux:**
+```bash
+~/.config/Netcatty/logs/
+```
+
+### View Electron Console
+
+1. **Settings > Developer > Open DevTools**
+2. Click **Console** tab
+3. Look for errors (red text)
+
+### Report Issues
+
+When reporting bugs, include:
+
+1. **Netcatty version:** Settings > About
+2. **Operating system:** macOS/Windows/Linux version
+3. **Error message:** Exact text of error
+4. **Steps to reproduce:** What you did before the error
+5. **Logs:** Relevant log files from above locations
+6. **Screenshot:** If applicable
+
+**GitHub Issues:** https://github.com/binaricat/Netcatty/issues
+
+## Getting Help
+
+<CardGroup cols={2}>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/binaricat/Netcatty/issues">
+    Report bugs and request features
+  </Card>
+  <Card title="Documentation" icon="book" href="https://netcatty.app">
+    Browse complete documentation
+  </Card>
+</CardGroup>
+
+<Note>
+Still having issues? Check the [GitHub Issues](https://github.com/binaricat/Netcatty/issues) page for similar problems or create a new issue with details.
+</Note>

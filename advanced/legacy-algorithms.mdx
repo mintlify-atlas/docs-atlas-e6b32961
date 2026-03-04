@@ -1,0 +1,280 @@
+---
+title: Legacy SSH Algorithms
+description: Connect to older network equipment using legacy SSH algorithms
+icon: router
+---
+
+Netcatty supports legacy SSH algorithms for compatibility with older network equipment like switches, routers, and embedded systems that don't support modern cryptographic standards.
+
+## Overview
+
+Modern SSH implementations disable weak algorithms for security. However, many network devices (especially older Cisco, HP, Juniper equipment) only support these legacy algorithms. Netcatty provides a per-host toggle to enable these algorithms when needed.
+
+## Enabling Legacy Algorithms
+
+### Per-Host Configuration
+
+In the host details panel:
+
+1. Open the host you want to configure
+2. Scroll to **Advanced Settings**
+3. Enable **Legacy SSH Algorithms**
+4. Save the host configuration
+
+This setting is stored in the `Host` model:
+
+```typescript
+// domain/models.ts:110
+legacyAlgorithms?: boolean;
+```
+
+## Supported Algorithms
+
+When legacy algorithms are enabled, Netcatty adds the following to the SSH handshake:
+
+### Key Exchange Algorithms
+
+**Standard (always enabled):**
+- `curve25519-sha256`, `curve25519-sha256@libssh.org`
+- `ecdh-sha2-nistp256`, `ecdh-sha2-nistp384`, `ecdh-sha2-nistp521`
+- `diffie-hellman-group14-sha256`
+- `diffie-hellman-group16-sha512`, `diffie-hellman-group18-sha512`
+- `diffie-hellman-group-exchange-sha256`
+
+**Legacy (when enabled):**
+- `diffie-hellman-group14-sha1` - Widely supported on older equipment
+- `diffie-hellman-group1-sha1` - Very old equipment (weak, use only if necessary)
+
+### Cipher Algorithms
+
+**Standard (always enabled):**
+- `aes128-gcm@openssh.com`, `aes256-gcm@openssh.com`
+- `aes128-ctr`, `aes192-ctr`, `aes256-ctr`
+
+**Legacy (when enabled):**
+- `aes128-cbc` - Common on older Cisco devices
+- `aes256-cbc` - Legacy encryption
+- `3des-cbc` - Very old equipment (slow, use only if necessary)
+
+### Host Key Algorithms
+
+**Legacy (when enabled):**
+- `ssh-rsa` - RSA with SHA-1 (deprecated but widely supported)
+- `ssh-dss` - DSA keys (very weak, use only if no alternative)
+
+Standard modern algorithms (always enabled):
+- `ssh-ed25519`, `ecdsa-sha2-nistp256/384/521`
+- `rsa-sha2-512`, `rsa-sha2-256`
+
+## Implementation
+
+The legacy algorithm support is implemented in `electron/bridges/sshBridge.cjs`:
+
+```javascript
+// electron/bridges/sshBridge.cjs:324
+algorithms: buildAlgorithms(options.legacyAlgorithms)
+```
+
+The `buildAlgorithms()` function:
+
+```javascript
+function buildAlgorithms(legacyEnabled) {
+  const algorithms = {
+    cipher: [
+      'aes128-gcm@openssh.com', 'aes256-gcm@openssh.com',
+      'aes128-ctr', 'aes192-ctr', 'aes256-ctr',
+    ],
+    kex: [
+      'curve25519-sha256', 'curve25519-sha256@libssh.org',
+      'ecdh-sha2-nistp256', 'ecdh-sha2-nistp384', 'ecdh-sha2-nistp521',
+      'diffie-hellman-group14-sha256',
+      'diffie-hellman-group16-sha512', 'diffie-hellman-group18-sha512',
+      'diffie-hellman-group-exchange-sha256',
+    ],
+    compress: ['none'],
+  };
+
+  if (legacyEnabled) {
+    algorithms.kex.push(
+      'diffie-hellman-group14-sha1',
+      'diffie-hellman-group1-sha1',
+    );
+    algorithms.cipher.push(
+      'aes128-cbc', 'aes256-cbc', '3des-cbc',
+    );
+    algorithms.serverHostKey = [
+      'ssh-ed25519', 'ecdsa-sha2-nistp256', ...,
+      'ssh-rsa', 'ssh-dss',
+    ];
+  }
+
+  return algorithms;
+}
+```
+
+## When to Enable
+
+<AccordionGroup>
+  <Accordion title="Network Equipment">
+    **Common scenarios:**
+    - Older Cisco switches and routers (IOS versions before 15.x)
+    - HP ProCurve switches
+    - Legacy Juniper devices
+    - Dell PowerConnect switches
+    - Older F5 load balancers
+
+    **Error messages:**
+    - "no matching key exchange method found"
+    - "no matching cipher found"
+    - "no matching host key type found"
+  </Accordion>
+
+  <Accordion title="Embedded Systems">
+    **Common scenarios:**
+    - Older Linux-based appliances
+    - Serial console servers
+    - KVM-over-IP devices
+    - PDU (Power Distribution Units)
+    - Environmental monitoring systems
+
+    **Indicators:**
+    - Devices running BusyBox with dropbear SSH
+    - Firmware that hasn't been updated in years
+    - Documentation mentioning "SSH v2 only" without algorithm details
+  </Accordion>
+
+  <Accordion title="Industrial Equipment">
+    **Common scenarios:**
+    - Industrial PLCs with SSH
+    - Building automation systems
+    - SCADA systems
+    - Legacy server management cards (iLO, DRAC, iDRAC)
+  </Accordion>
+</AccordionGroup>
+
+## Security Considerations
+
+<Warning>
+Legacy algorithms are disabled by default for security reasons. Only enable them for specific hosts that require them.
+</Warning>
+
+### Risks
+
+- **Weak encryption:** CBC mode ciphers are vulnerable to certain attacks
+- **SHA-1 weaknesses:** Key exchange using SHA-1 is considered weak
+- **DSS keys:** DSA is cryptographically weak compared to modern algorithms
+- **3DES performance:** Very slow and provides limited security
+
+### Mitigation Strategies
+
+1. **Use per-host configuration:** Only enable legacy algorithms for specific hosts, not globally
+2. **Network isolation:** Keep legacy equipment on isolated management networks
+3. **Upgrade when possible:** Update device firmware to support modern algorithms
+4. **VPN tunneling:** Use a VPN to add an extra encryption layer
+5. **Limit exposure:** Don't expose legacy SSH services to the internet
+6. **Monitor connections:** Keep connection logs for security audits
+
+## Troubleshooting
+
+### Connection Fails Even with Legacy Algorithms
+
+If you still can't connect after enabling legacy algorithms:
+
+1. **Check the error message carefully:**
+   - "no matching MAC found" - MAC algorithm issue (rare)
+   - "connection reset" - May be authentication, not algorithm issue
+   - "timeout" - Network/firewall problem, not algorithm issue
+
+2. **Verify device SSH configuration:**
+   ```bash
+   # On the device, check SSH config
+   show ssh server  # Cisco
+   show ip ssh      # Some switches
+   ```
+
+3. **Test with OpenSSH manually:**
+   ```bash
+   # Test connection with verbose output
+   ssh -vvv -o KexAlgorithms=+diffie-hellman-group1-sha1 \
+       -o HostKeyAlgorithms=+ssh-rsa \
+       -o Ciphers=+aes128-cbc \
+       user@device
+   ```
+
+4. **Check known_hosts conflicts:**
+   - Clear old host keys if device was reinstalled
+   - See [Security Best Practices](/advanced/security#known-hosts)
+
+### Performance Issues
+
+Legacy algorithms can be slower:
+
+- **3DES** is particularly slow (avoid if possible)
+- Use **AES-CBC** instead if the device supports it
+- **DH-group1** is faster than group14 but weaker (use group14 if possible)
+
+## Common Device-Specific Settings
+
+### Cisco IOS (older versions)
+
+```text
+Required: legacyAlgorithms = true
+Typical working algorithms:
+- KEX: diffie-hellman-group14-sha1
+- Cipher: aes128-cbc
+- Host key: ssh-rsa
+```
+
+### HP ProCurve (older firmware)
+
+```text
+Required: legacyAlgorithms = true
+Typical working algorithms:
+- KEX: diffie-hellman-group14-sha1
+- Cipher: aes128-cbc or 3des-cbc
+- Host key: ssh-rsa
+```
+
+### Dropbear SSH (embedded Linux)
+
+```text
+May require: legacyAlgorithms = true
+Depends on version:
+- Older versions (< 2016): likely needs legacy
+- Newer versions: often support modern algorithms
+```
+
+## Upgrading Devices
+
+When possible, upgrade device firmware to support modern algorithms:
+
+### Cisco IOS
+
+```cisco
+! Generate new RSA keys (2048-bit minimum)
+crypto key generate rsa modulus 2048
+
+! Enable SSH version 2 only
+ip ssh version 2
+
+! Set minimum encryption standard
+ip ssh server algorithm encryption aes128-ctr aes192-ctr aes256-ctr
+```
+
+### Linux (OpenSSH Server)
+
+```bash
+# Edit /etc/ssh/sshd_config
+KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group14-sha256
+Ciphers aes128-gcm@openssh.com,aes256-gcm@openssh.com,aes128-ctr,aes256-ctr
+HostKeyAlgorithms ssh-ed25519,rsa-sha2-512,rsa-sha2-256
+
+# Restart SSH
+sudo systemctl restart sshd
+```
+
+## Further Reading
+
+- [Mozilla SSH Guidelines](https://infosec.mozilla.org/guidelines/openssh) - Modern SSH hardening
+- [NIST SP 800-52](https://csrc.nist.gov/publications/detail/sp/800-52/rev-2/final) - Guidelines for TLS/SSH
+- [Cisco SSH Configuration Guide](https://www.cisco.com/c/en/us/support/docs/security-vpn/secure-shell-ssh/4145-ssh.html)

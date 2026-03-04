@@ -1,0 +1,625 @@
+---
+title: Keyword Highlighting
+description: Configure pattern-based highlighting for terminal output
+icon: 'highlighter'
+---
+
+## Overview
+
+Keyword highlighting automatically colorizes patterns in terminal output (errors, warnings, IP addresses, etc.) to help you quickly identify important information. Netcatty uses xterm.js decorations for zero-performance-impact highlighting.
+
+## How It Works
+
+Keyword highlighting operates on visible terminal content:
+
+1. **Pattern Matching:** Regular expressions are matched against each line
+2. **Lazy Highlighting:** Only visible viewport is processed (debounced)
+3. **Decorations API:** Colors are applied as overlays without modifying data
+4. **Auto-disabled in Alternate Buffer:** Disabled in vim/htop for performance
+
+<Info>
+  Highlighting is purely visual - it doesn't affect terminal data or command execution.
+</Info>
+
+## Highlight Rules
+
+Each rule defines patterns to match and the color to apply.
+
+### Rule Structure
+
+<ResponseField name="KeywordHighlightRule" type="object">
+  <Expandable title="Properties">
+    <ResponseField name="id" type="string" required>
+      Unique rule identifier (e.g., `error`, `ip-address`)
+    </ResponseField>
+    
+    <ResponseField name="label" type="string" required>
+      Display name for the rule (e.g., "Error Messages")
+    </ResponseField>
+    
+    <ResponseField name="patterns" type="string[]" required>
+      Array of regex patterns to match (case-insensitive, global)
+    </ResponseField>
+    
+    <ResponseField name="color" type="string" required>
+      Highlight color in hex format (e.g., `#F87171`)
+    </ResponseField>
+    
+    <ResponseField name="enabled" type="boolean" required>
+      Whether this rule is active
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Rule
+
+```json
+{
+  "id": "error",
+  "label": "Error",
+  "patterns": [
+    "\\[error\\]",
+    "\\[err\\]",
+    "\\berror\\b",
+    "\\bfail(ed)?\\b",
+    "\\bfatal\\b",
+    "\\bcritical\\b",
+    "\\bexception\\b"
+  ],
+  "color": "#F87171",
+  "enabled": true
+}
+```
+
+This rule matches:
+- `[error]` or `[err]` in brackets
+- The word "error" (whole word)
+- "fail" or "failed"
+- "fatal", "critical", "exception"
+
+## Default Highlight Rules
+
+Netcatty includes 6 default rules covering common patterns.
+
+<Tabs>
+  <Tab title="Error">
+    **Color:** <span style={{color: '#F87171'}}>Red (#F87171)</span>
+    
+    **Patterns:**
+    - `\[error\]`, `\[err\]`
+    - `\berror\b`, `\bfail(ed)?\b`
+    - `\bfatal\b`, `\bcritical\b`
+    - `\bexception\b`
+    
+    **Matches:**
+    - `ERROR: File not found`
+    - `[error] Connection failed`
+    - `fatal: not a git repository`
+  </Tab>
+  
+  <Tab title="Warning">
+    **Color:** <span style={{color: '#FBBF24'}}>Yellow (#FBBF24)</span>
+    
+    **Patterns:**
+    - `\[warn(ing)?\]`
+    - `\bwarn(ing)?\b`
+    - `\bcaution\b`, `\bdeprecated\b`
+    
+    **Matches:**
+    - `WARNING: Low disk space`
+    - `[warn] Slow query detected`
+    - `deprecated: use --new-flag instead`
+  </Tab>
+  
+  <Tab title="Success/OK">
+    **Color:** <span style={{color: '#34D399'}}>Green (#34D399)</span>
+    
+    **Patterns:**
+    - `\[ok\]`, `\bok\b`
+    - `\bsuccess(ful)?\b`
+    - `\bpassed\b`, `\bcompleted\b`
+    - `\bdone\b`
+    
+    **Matches:**
+    - `[OK] Service started`
+    - `Test passed successfully`
+    - `Deployment completed`
+  </Tab>
+  
+  <Tab title="Info">
+    **Color:** <span style={{color: '#3B82F6'}}>Blue (#3B82F6)</span>
+    
+    **Patterns:**
+    - `\[info\]`, `\[notice\]`, `\[note\]`
+    - `\bnotice\b`, `\bnote\b`
+    
+    **Matches:**
+    - `[info] Starting server...`
+    - `Notice: Update available`
+  </Tab>
+  
+  <Tab title="Debug">
+    **Color:** <span style={{color: '#A78BFA'}}>Purple (#A78BFA)</span>
+    
+    **Patterns:**
+    - `\[debug\]`, `\[trace\]`, `\[verbose\]`
+    - `\bdebug\b`, `\btrace\b`, `\bverbose\b`
+    
+    **Matches:**
+    - `[debug] Query took 23ms`
+    - `TRACE: Function called`
+  </Tab>
+  
+  <Tab title="IP & MAC Addresses">
+    **Color:** <span style={{color: '#EC4899'}}>Pink (#EC4899)</span>
+    
+    **Patterns:**
+    - `\b(?:\d{1,3}\.){3}\d{1,3}\b` (IPv4)
+    - `\b([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b` (MAC)
+    
+    **Matches:**
+    - `192.168.1.1`
+    - `10.0.0.45`
+    - `aa:bb:cc:dd:ee:ff`
+  </Tab>
+</Tabs>
+
+## Global Configuration
+
+Configure highlighting for all terminals.
+
+### Enabling/Disabling
+
+<ParamField path="keywordHighlightEnabled" type="boolean" default="true">
+  Master toggle for keyword highlighting
+</ParamField>
+
+**UI Location:**
+
+1. Navigate to **Settings** → **Terminal**
+2. Scroll to **Keyword Highlighting** section
+3. Toggle **Enable Keyword Highlighting**
+
+### Managing Rules
+
+**UI Workflow:**
+
+1. **Settings** → **Terminal** → **Keyword Highlighting**
+2. View list of rules with:
+   - Label and preview color
+   - Enable/disable toggle
+   - Pattern count
+3. Click a rule to edit
+4. Use **+ Add Rule** to create new
+
+### Creating Rules
+
+**Steps:**
+
+1. Click **+ Add Rule**
+2. Configure:
+   - **Label**: Descriptive name
+   - **Color**: Click to open color picker
+   - **Patterns**: Add regex patterns (one per line)
+   - **Enabled**: Toggle on
+3. **Test** against sample output
+4. Click **Save**
+
+### Editing Rules
+
+1. Click on existing rule
+2. Modify:
+   - Label
+   - Color (click swatch to change)
+   - Patterns (add/remove/edit)
+3. Click **Update**
+
+### Rule Priority
+
+When multiple rules match the same text:
+- **First match wins** (rule order matters)
+- Reorder rules by dragging in the UI
+- More specific patterns should come before general ones
+
+## Host-Specific Highlighting
+
+Override global rules per host.
+
+### Configuration
+
+<ParamField path="keywordHighlightEnabled" type="boolean">
+  Enable highlighting for this host (overrides global setting)
+</ParamField>
+
+<ParamField path="keywordHighlightRules" type="KeywordHighlightRule[]">
+  Custom rules for this host (extends or replaces global rules)
+</ParamField>
+
+### Example
+
+```json
+{
+  "hostname": "nginx-server.com",
+  "username": "admin",
+  "keywordHighlightEnabled": true,
+  "keywordHighlightRules": [
+    {
+      "id": "nginx-error",
+      "label": "NGINX Error",
+      "patterns": [
+        "\\[emerg\\]",
+        "\\[alert\\]",
+        "\\[crit\\]"
+      ],
+      "color": "#DC2626",
+      "enabled": true
+    },
+    {
+      "id": "nginx-access",
+      "label": "NGINX Access Log",
+      "patterns": [
+        "\\b(GET|POST|PUT|DELETE|PATCH)\\b"
+      ],
+      "color": "#10B981",
+      "enabled": true
+    }
+  ]
+}
+```
+
+### UI Workflow
+
+1. Open **Host Details** panel
+2. Navigate to **Advanced** → **Keyword Highlighting**
+3. Click **Customize Highlights**
+4. Options:
+   - **Use Global Rules**: Inherit from settings
+   - **Extend Global Rules**: Add host-specific rules
+   - **Replace Global Rules**: Use only host rules
+5. Add/edit/remove rules
+6. Click **Save**
+
+### Use Cases
+
+<AccordionGroup>
+  <Accordion title="Application-Specific Logs">
+    Highlight patterns unique to an application:
+    - NGINX/Apache log levels
+    - Application error codes
+    - Custom status messages
+  </Accordion>
+  
+  <Accordion title="Server Type Indicators">
+    Different colors for different server roles:
+    - Production: Red for errors
+    - Staging: Yellow for warnings
+    - Development: Blue for info
+  </Accordion>
+  
+  <Accordion title="Network Equipment">
+    Highlight switch/router output:
+    - Interface states (up/down)
+    - VLAN IDs
+    - MAC addresses
+    - Protocol names (BGP, OSPF, etc.)
+  </Accordion>
+</AccordionGroup>
+
+## Writing Regex Patterns
+
+### Pattern Syntax
+
+Patterns are JavaScript regular expressions with `gi` flags (global, case-insensitive).
+
+**Common Patterns:**
+
+<Tabs>
+  <Tab title="Exact Match">
+    Match exact strings:
+    ```regex
+    ERROR
+    ```
+    Matches: `ERROR`, `error`, `Error`
+  </Tab>
+  
+  <Tab title="Word Boundary">
+    Match whole words only:
+    ```regex
+    \berror\b
+    ```
+    Matches: `error`, `Error detected`
+    
+    Does NOT match: `errors`, `errorCode`
+  </Tab>
+  
+  <Tab title="Brackets">
+    Match text in brackets:
+    ```regex
+    \[error\]
+    ```
+    Matches: `[error]`, `[ERROR]`
+    
+    (Backslashes escape the brackets)
+  </Tab>
+  
+  <Tab title="Optional Text">
+    Match variations:
+    ```regex
+    \bfail(ed)?\b
+    ```
+    Matches: `fail`, `failed`
+  </Tab>
+  
+  <Tab title="Alternatives">
+    Match multiple options:
+    ```regex
+    \b(error|warning|critical)\b
+    ```
+    Matches: `error`, `warning`, `critical`
+  </Tab>
+  
+  <Tab title="IP Address">
+    Match IPv4 addresses:
+    ```regex
+    \b(?:\d{1,3}\.){3}\d{1,3}\b
+    ```
+    Matches: `192.168.1.1`, `10.0.0.1`
+  </Tab>
+</Tabs>
+
+### Pattern Examples
+
+**HTTP Status Codes:**
+```regex
+\b(200|201|204|301|302|400|401|403|404|500|502|503)\b
+```
+
+**Git Branch Names:**
+```regex
+\b(main|master|develop|feature|hotfix)\/[\w-]+\b
+```
+
+**Version Numbers:**
+```regex
+\bv?\d+\.\d+\.\d+\b
+```
+
+**Email Addresses:**
+```regex
+\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b
+```
+
+**File Paths:**
+```regex
+\/[\w\/-]+\.(log|conf|cfg|txt|json|yml|yaml)
+```
+
+### Testing Patterns
+
+Use the **Test Pattern** feature in the rule editor:
+
+1. Enter your pattern
+2. Paste sample terminal output
+3. Netcatty shows matches highlighted
+4. Adjust pattern as needed
+
+<Tip>
+  Test patterns on real output from your servers for best results.
+</Tip>
+
+## Performance Considerations
+
+Netcatty optimizes highlighting for smooth terminal operation.
+
+### Optimizations
+
+<ParamField path="debounceMs" type="number" default="150">
+  Milliseconds to wait before highlighting after scroll/write
+</ParamField>
+
+**How it works:**
+1. Terminal content changes (scroll or new output)
+2. Netcatty waits 150ms for more changes
+3. If no changes, highlights the visible viewport
+4. Result: Smooth scrolling with no lag
+
+### Best Practices
+
+<AccordionGroup>
+  <Accordion title="Pattern Efficiency">
+    - **Specific patterns:** `\[error\]` is faster than `error`
+    - **Anchor patterns:** Use `\b` for word boundaries
+    - **Avoid greedy quantifiers:** `.*` can be slow
+  </Accordion>
+  
+  <Accordion title="Rule Count">
+    - Keep rules under 20 for best performance
+    - Combine similar patterns into one rule
+    - Disable unused rules
+  </Accordion>
+  
+  <Accordion title="Alternate Buffer">
+    Highlighting auto-disables in alternate buffer (vim, htop, etc.) to avoid impacting interactive applications.
+  </Accordion>
+</AccordionGroup>
+
+## Use Cases
+
+### System Administration
+
+**Log Monitoring:**
+```json
+[
+  {
+    "label": "Critical",
+    "patterns": ["\\bcritical\\b", "\\bemerg\\b"],
+    "color": "#DC2626"
+  },
+  {
+    "label": "Service Status",
+    "patterns": ["(active|running)", "(inactive|stopped|failed)"],
+    "color": "#10B981"
+  }
+]
+```
+
+### Development
+
+**Build Output:**
+```json
+[
+  {
+    "label": "Build Success",
+    "patterns": ["Build succeeded", "Compilation complete"],
+    "color": "#10B981"
+  },
+  {
+    "label": "Build Error",
+    "patterns": ["Build failed", "Compilation error"],
+    "color": "#DC2626"
+  }
+]
+```
+
+### Network Operations
+
+**Switch Configuration:**
+```json
+[
+  {
+    "label": "Interface Up",
+    "patterns": ["link up", "connected", "administratively up"],
+    "color": "#10B981"
+  },
+  {
+    "label": "Interface Down",
+    "patterns": ["link down", "disconnected", "administratively down"],
+    "color": "#DC2626"
+  },
+  {
+    "label": "MAC Address",
+    "patterns": ["\\b([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\\b"],
+    "color": "#EC4899"
+  }
+]
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Pattern Not Matching">
+    **Possible Causes:**
+    - Regex syntax error
+    - Case-sensitivity (patterns are case-insensitive by default)
+    - Need to escape special characters
+    
+    **Solution:**
+    1. Test pattern in rule editor
+    2. Check regex syntax: [regex101.com](https://regex101.com)
+    3. Escape special chars: `[ ] ( ) . * + ? ^ $ \ |`
+  </Accordion>
+  
+  <Accordion title="Highlighting Not Appearing">
+    **Possible Causes:**
+    - Highlighting disabled globally or for host
+    - Rule is disabled
+    - In alternate buffer (vim/htop)
+    
+    **Solution:**
+    1. Check **Settings** → **Terminal** → **Keyword Highlighting** is ON
+    2. Verify rule is enabled (green toggle)
+    3. Exit vim/htop and check normal terminal
+  </Accordion>
+  
+  <Accordion title="Performance Issues">
+    **Possible Causes:**
+    - Too many rules
+    - Complex regex patterns
+    - Very long terminal lines
+    
+    **Solution:**
+    1. Reduce number of active rules
+    2. Simplify patterns (avoid `.*`)
+    3. Disable highlighting temporarily if needed
+  </Accordion>
+  
+  <Accordion title="Wrong Color Appearing">
+    **Cause:** Multiple rules matching, wrong priority
+    
+    **Solution:**
+    1. Reorder rules (more specific first)
+    2. Make patterns more specific
+    3. Check for overlapping patterns
+  </Accordion>
+</AccordionGroup>
+
+## Advanced Examples
+
+### Multi-Pattern Rules
+
+Combine multiple related patterns:
+
+```json
+{
+  "id": "kubernetes",
+  "label": "Kubernetes Events",
+  "patterns": [
+    "\\bPodCreated\\b",
+    "\\bPodStarted\\b",
+    "\\bPodFailed\\b",
+    "\\bPodKilled\\b",
+    "\\bCrashLoopBackOff\\b",
+    "\\bImagePullBackOff\\b"
+  ],
+  "color": "#F59E0B",
+  "enabled": true
+}
+```
+
+### Contextual Highlighting
+
+Highlight based on context:
+
+```json
+{
+  "id": "sql-queries",
+  "label": "SQL Keywords",
+  "patterns": [
+    "\\b(SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|JOIN)\\b"
+  ],
+  "color": "#8B5CF6",
+  "enabled": true
+}
+```
+
+### Time-Based Patterns
+
+Highlight timestamps:
+
+```json
+{
+  "id": "timestamps",
+  "label": "ISO Timestamps",
+  "patterns": [
+    "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}"
+  ],
+  "color": "#6366F1",
+  "enabled": true
+}
+```
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Custom Themes" icon="palette" href="/guides/custom-themes">
+    Create terminal color schemes
+  </Card>
+  
+  <Card title="Host Configuration" icon="gear" href="/guides/host-configuration">
+    Apply highlighting per host
+  </Card>
+  
+  <Card title="Terminal Settings" icon="sliders" href="/guides/terminal-settings">
+    Configure terminal appearance and behavior
+  </Card>
+</CardGroup>

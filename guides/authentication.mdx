@@ -1,0 +1,471 @@
+---
+title: Authentication
+description: Configure password, SSH keys, certificates, and agent forwarding
+icon: 'shield-halved'
+---
+
+## Overview
+
+Netcatty supports multiple authentication methods for SSH connections: password authentication, SSH key authentication, and certificate-based authentication. This guide covers configuration, best practices, and troubleshooting.
+
+## Authentication Methods
+
+<ParamField path="authMethod" type="IdentityAuthMethod">
+  Authentication method for this host
+  
+  <Expandable title="Options">
+    - `password` - Password authentication
+    - `key` - SSH key authentication
+    - `certificate` - Certificate-based authentication
+  </Expandable>
+</ParamField>
+
+## Password Authentication
+
+The simplest authentication method using username and password.
+
+### Configuration
+
+<ParamField path="password" type="string">
+  User password for authentication
+</ParamField>
+
+<ParamField path="savePassword" type="boolean" default="true">
+  Whether to save the password securely
+</ParamField>
+
+### Example
+
+```json
+{
+  "hostname": "server.example.com",
+  "username": "admin",
+  "authMethod": "password",
+  "password": "your-password",
+  "savePassword": true
+}
+```
+
+### UI Workflow
+
+1. Open **Host Details** panel
+2. Select **Authentication Method**: Password
+3. Enter your **Password**
+4. Toggle **Save Password** (enabled by default)
+5. Click **Save**
+
+<Warning>
+  Passwords are stored securely using your system's credential manager. However, SSH key authentication is more secure for production environments.
+</Warning>
+
+### Password Not Saved
+
+If you disable "Save Password", Netcatty will prompt for the password each time you connect:
+
+```json
+{
+  "authMethod": "password",
+  "password": undefined,
+  "savePassword": false
+}
+```
+
+## SSH Key Authentication
+
+Secure, password-less authentication using public-key cryptography.
+
+### Configuration
+
+<ParamField path="identityFileId" type="string">
+  Reference to an SSH key stored in the Keychain
+</ParamField>
+
+### Example
+
+```json
+{
+  "hostname": "server.example.com",
+  "username": "deploy",
+  "authMethod": "key",
+  "identityFileId": "my-deploy-key"
+}
+```
+
+### UI Workflow
+
+1. **Generate or Import Key** (see [Keychain Management](/guides/keychain-management))
+   - Navigate to **Keychain** in the sidebar
+   - Click **Generate** or **Import**
+   - Save your key with a descriptive label
+
+2. **Attach Key to Host**
+   - Open **Host Details** panel
+   - Select **Authentication Method**: Key
+   - Choose your key from the **Identity File** dropdown
+   - Click **Save**
+
+3. **Export Public Key to Server** (if not already done)
+   - In Keychain, click on your key
+   - Click **Export to Host**
+   - Select the target host
+   - Netcatty will automatically append to `~/.ssh/authorized_keys`
+
+### Key Types Supported
+
+<Tabs>
+  <Tab title="ED25519 (Recommended)">
+    Modern, fast, and secure elliptic curve algorithm.
+    
+    ```bash
+    ssh-keygen -t ed25519 -C "your_email@example.com"
+    ```
+    
+    **Advantages:**
+    - Strongest security
+    - Small key size
+    - Fast operations
+  </Tab>
+  
+  <Tab title="RSA">
+    Traditional algorithm, widely compatible.
+    
+    ```bash
+    ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+    ```
+    
+    **Key Sizes:**
+    - 4096 bits (recommended)
+    - 2048 bits (minimum)
+    - 1024 bits (legacy, not recommended)
+  </Tab>
+  
+  <Tab title="ECDSA">
+    Elliptic curve algorithm.
+    
+    ```bash
+    ssh-keygen -t ecdsa -b 521 -C "your_email@example.com"
+    ```
+    
+    **Key Sizes:**
+    - 521 bits (recommended)
+    - 384 bits
+    - 256 bits
+  </Tab>
+</Tabs>
+
+### Passphrase Protection
+
+<ParamField path="passphrase" type="string">
+  Passphrase to decrypt the private key
+</ParamField>
+
+<ParamField path="savePassphrase" type="boolean">
+  Whether to save the passphrase securely
+</ParamField>
+
+If your SSH key is encrypted with a passphrase:
+
+1. Netcatty will prompt for the passphrase on first use
+2. Enable **Save Passphrase** to avoid repeated prompts
+3. The passphrase is stored securely in your system's credential manager
+
+<Tip>
+  Always use a passphrase for private keys on shared or portable devices.
+</Tip>
+
+## Certificate Authentication
+
+Use SSH certificates for advanced security and centralized key management.
+
+### Configuration
+
+<ParamField path="certificate" type="string">
+  SSH certificate content
+</ParamField>
+
+### Example
+
+```json
+{
+  "hostname": "server.example.com",
+  "username": "deploy",
+  "authMethod": "certificate",
+  "identityFileId": "my-key",
+  "certificate": "ssh-rsa-cert-v01@openssh.com AAAA..."
+}
+```
+
+### UI Workflow
+
+1. Navigate to **Keychain**
+2. Click **Import**
+3. Paste your **Private Key**
+4. Paste your **Certificate** in the Certificate field
+5. Click **Save**
+6. Attach to host in **Host Details** > **Authentication**
+
+<Info>
+  SSH certificates are signed by a Certificate Authority (CA). The remote server must trust the CA's public key.
+</Info>
+
+## SSH Agent Forwarding
+
+Forward your local SSH agent to remote servers for seamless multi-hop authentication.
+
+<ParamField path="agentForwarding" type="boolean" default="false">
+  Enable SSH agent forwarding
+</ParamField>
+
+### Use Cases
+
+- Access Git repositories from remote servers using your local keys
+- Jump between servers without copying keys
+- Deploy applications that require SSH authentication
+
+### Configuration
+
+```json
+{
+  "hostname": "bastion.example.com",
+  "username": "admin",
+  "authMethod": "key",
+  "identityFileId": "my-key",
+  "agentForwarding": true
+}
+```
+
+### UI Workflow
+
+1. Open **Host Details** panel
+2. Navigate to **Advanced** section
+3. Enable **SSH Agent Forwarding** toggle
+4. Click **Save**
+
+<Warning>
+  **Security Considerations:**
+  - Only enable agent forwarding on trusted hosts
+  - Malicious users with root access can hijack your forwarded agent
+  - Consider using ProxyJump instead for multi-hop connections
+</Warning>
+
+### Windows SSH Agent
+
+On Windows, Netcatty checks if the SSH Agent service is running:
+
+- **Service Not Running:** You'll see a warning with instructions
+- **To Enable:**
+  ```powershell
+  # Run as Administrator
+  Get-Service ssh-agent | Set-Service -StartupType Automatic
+  Start-Service ssh-agent
+  ```
+
+### macOS/Linux SSH Agent
+
+The SSH agent usually runs automatically. To verify:
+
+```bash
+# Check if agent is running
+echo $SSH_AUTH_SOCK
+
+# Add your key to the agent
+ssh-add ~/.ssh/id_ed25519
+
+# List loaded keys
+ssh-add -l
+```
+
+## Identity Management
+
+Identities combine username and authentication method for reuse across multiple hosts.
+
+### Identity Structure
+
+<ParamField path="identityId" type="string">
+  Reference to a reusable identity in the Keychain
+</ParamField>
+
+An Identity includes:
+
+<ResponseField name="Identity" type="object">
+  <Expandable title="Properties">
+    <ResponseField name="id" type="string" required>
+      Unique identifier
+    </ResponseField>
+    
+    <ResponseField name="label" type="string" required>
+      Display name (e.g., "Work Account", "Deploy User")
+    </ResponseField>
+    
+    <ResponseField name="username" type="string" required>
+      SSH username
+    </ResponseField>
+    
+    <ResponseField name="authMethod" type="IdentityAuthMethod" required>
+      Authentication method
+    </ResponseField>
+    
+    <ResponseField name="password" type="string">
+      Password (for password auth)
+    </ResponseField>
+    
+    <ResponseField name="keyId" type="string">
+      Reference to SSH key (for key/certificate auth)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Creating an Identity
+
+1. Navigate to **Keychain**
+2. Switch to **Identities** tab
+3. Click **New Identity**
+4. Configure:
+   - **Label**: "Production Deploy"
+   - **Username**: deploy
+   - **Auth Method**: Key
+   - **SSH Key**: Select from dropdown
+5. Click **Save**
+
+### Using an Identity
+
+```json
+{
+  "hostname": "web-01.example.com",
+  "identityId": "prod-deploy-identity"
+}
+```
+
+When you attach an identity to a host:
+- Username is inherited from the identity
+- Authentication method is inherited
+- Credentials are inherited
+
+<Tip>
+  Use identities to maintain consistent authentication across multiple hosts (e.g., all production servers use the same deploy identity).
+</Tip>
+
+## Authentication Priority
+
+When multiple authentication methods are configured, Netcatty follows this priority:
+
+1. **Identity-based auth** (if `identityId` is set)
+2. **Direct key auth** (if `identityFileId` is set)
+3. **Password auth** (if `password` is set)
+4. **Prompt for password** (if `savePassword` is false)
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Connection Refused / Permission Denied">
+    **Possible Causes:**
+    - Incorrect username or password
+    - SSH key not authorized on server
+    - Wrong authentication method selected
+    
+    **Solutions:**
+    1. Verify username and hostname
+    2. Check `~/.ssh/authorized_keys` on the server
+    3. Ensure your public key is present
+    4. Try password authentication to verify connectivity
+  </Accordion>
+  
+  <Accordion title="Passphrase Prompt Every Time">
+    **Cause:** SSH key passphrase is not saved
+    
+    **Solution:**
+    1. Open **Keychain**
+    2. Click on your key
+    3. Enable **Save Passphrase**
+    4. Enter passphrase once
+  </Accordion>
+  
+  <Accordion title="Agent Forwarding Not Working">
+    **Possible Causes:**
+    - SSH agent not running locally
+    - Server doesn't allow agent forwarding
+    
+    **Solutions:**
+    
+    **Local Side:**
+    ```bash
+    # Start SSH agent
+    eval $(ssh-agent)
+    
+    # Add your key
+    ssh-add ~/.ssh/id_ed25519
+    ```
+    
+    **Server Side:**
+    Edit `/etc/ssh/sshd_config`:
+    ```
+    AllowAgentForwarding yes
+    ```
+    
+    Restart SSH service:
+    ```bash
+    sudo systemctl restart sshd
+    ```
+  </Accordion>
+  
+  <Accordion title="Certificate Authentication Fails">
+    **Possible Causes:**
+    - Certificate expired
+    - CA not trusted by server
+    - Certificate principals don't match
+    
+    **Solution:**
+    Check certificate details:
+    ```bash
+    ssh-keygen -L -f ~/.ssh/id_rsa-cert.pub
+    ```
+    
+    Verify the server trusts the CA:
+    ```bash
+    # On server
+    cat /etc/ssh/ca-keys.pub
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Security Best Practices
+
+<Steps>
+  <Step title="Use SSH Keys">
+    Prefer key authentication over passwords for automated and production access.
+  </Step>
+  
+  <Step title="Protect Private Keys">
+    - Use passphrases on all private keys
+    - Store keys securely (avoid shared/cloud drives)
+    - Rotate keys regularly
+  </Step>
+  
+  <Step title="Limit Agent Forwarding">
+    Only enable agent forwarding on trusted bastion/jump hosts.
+  </Step>
+  
+  <Step title="Use Short-Lived Certificates">
+    For team environments, prefer SSH certificates with 24-48 hour validity.
+  </Step>
+  
+  <Step title="Audit Key Usage">
+    Regularly review which keys have access to which servers.
+  </Step>
+</Steps>
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Keychain Management" icon="key" href="/guides/keychain-management">
+    Generate, import, and manage SSH keys
+  </Card>
+  
+  <Card title="Host Configuration" icon="gear" href="/guides/host-configuration">
+    Advanced host settings and environment variables
+  </Card>
+  
+  <Card title="Proxy & Jump Hosts" icon="network-wired" href="/guides/proxy-jump-hosts">
+    Configure bastion hosts and multi-hop connections
+  </Card>
+</CardGroup>

@@ -1,0 +1,369 @@
+---
+title: Host Configuration
+description: Configure advanced host settings, environment variables, and startup commands
+icon: 'gear'
+---
+
+## Overview
+
+Netcatty provides extensive host configuration options beyond basic connection details. This guide covers advanced settings including environment variables, startup commands, protocol selection, and host-specific customizations.
+
+## Environment Variables
+
+Set custom environment variables that will be exported in your SSH session.
+
+### Configuration
+
+<ParamField path="environmentVariables" type="EnvVar[]">
+  Array of environment variable objects
+  
+  <Expandable title="EnvVar Properties">
+    <ParamField path="name" type="string" required>
+      Variable name (e.g., `PATH`, `EDITOR`)
+    </ParamField>
+    
+    <ParamField path="value" type="string" required>
+      Variable value
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Example
+
+```json
+{
+  "environmentVariables": [
+    { "name": "EDITOR", "value": "vim" },
+    { "name": "NODE_ENV", "value": "production" },
+    { "name": "PATH", "value": "/usr/local/bin:/usr/bin:/bin" }
+  ]
+}
+```
+
+### UI Location
+
+1. Open **Host Details** panel
+2. Navigate to **Advanced** section
+3. Click **Environment Variables**
+4. Add variables using the `+` button
+
+<Note>
+  Environment variables are exported after connection but before the startup command runs.
+</Note>
+
+## Startup Commands
+
+Execute commands automatically after connecting to a host.
+
+<ParamField path="startupCommand" type="string">
+  Command or script to run after connection
+</ParamField>
+
+### Use Cases
+
+- Change to a specific directory
+- Source profile files
+- Display system information
+- Activate virtual environments
+- Start monitoring tools
+
+### Examples
+
+**Change Directory and Show Status**
+```bash
+cd /var/www && git status
+```
+
+**Activate Python Environment**
+```bash
+source ~/venv/bin/activate && cd ~/project
+```
+
+**Multi-line Script**
+```bash
+cd /srv/app
+source .env
+npm run status
+```
+
+### UI Location
+
+1. Open **Host Details** panel
+2. Find **Startup Command** field
+3. Enter your command(s)
+4. Multi-line commands are supported
+
+## Protocol Configuration
+
+Netcatty supports multiple protocols per host with individual port configurations.
+
+### Available Protocols
+
+<ParamField path="protocol" type="HostProtocol">
+  Default protocol for this host
+  
+  <Expandable title="Options">
+    - `ssh` - Secure Shell (default)
+    - `telnet` - Telnet protocol
+    - `mosh` - Mobile Shell (requires mosh-server)
+    - `local` - Local terminal
+    - `serial` - Serial port connection
+  </Expandable>
+</ParamField>
+
+### Multi-Protocol Support
+
+<ParamField path="protocols" type="ProtocolConfig[]">
+  Configure multiple protocols for quick switching
+  
+  <Expandable title="ProtocolConfig Properties">
+    <ParamField path="protocol" type="HostProtocol" required>
+      Protocol type
+    </ParamField>
+    
+    <ParamField path="port" type="number" required>
+      Port number for this protocol
+    </ParamField>
+    
+    <ParamField path="enabled" type="boolean" required>
+      Whether this protocol is enabled
+    </ParamField>
+    
+    <ParamField path="moshServerPath" type="string">
+      Custom path to mosh-server (for Mosh protocol)
+    </ParamField>
+    
+    <ParamField path="theme" type="string">
+      Override terminal theme for this protocol
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Example Configuration
+
+```json
+{
+  "protocol": "ssh",
+  "port": 22,
+  "protocols": [
+    { "protocol": "ssh", "port": 22, "enabled": true },
+    { "protocol": "telnet", "port": 23, "enabled": true },
+    { "protocol": "mosh", "port": 22, "enabled": true, "moshServerPath": "/usr/local/bin/mosh-server" }
+  ]
+}
+```
+
+## Mosh Configuration
+
+Mobile Shell provides better connectivity over unstable networks.
+
+<ParamField path="moshEnabled" type="boolean">
+  Enable Mosh support
+</ParamField>
+
+<ParamField path="moshServerPath" type="string">
+  Custom path to mosh-server executable on remote host
+</ParamField>
+
+### Example
+
+```json
+{
+  "moshEnabled": true,
+  "moshServerPath": "/usr/local/bin/mosh-server"
+}
+```
+
+<Info>
+  Mosh requires `mosh-server` to be installed on the remote host. The default path is usually `/usr/bin/mosh-server`.
+</Info>
+
+## Serial Port Configuration
+
+Connect to devices via serial ports (for network equipment, embedded systems, etc.).
+
+<ParamField path="serialConfig" type="SerialConfig">
+  Serial port connection settings
+  
+  <Expandable title="SerialConfig Properties">
+    <ParamField path="path" type="string" required>
+      Serial port path (e.g., `/dev/ttyUSB0`, `COM1`)
+    </ParamField>
+    
+    <ParamField path="baudRate" type="number" required>
+      Baud rate (e.g., 9600, 115200)
+    </ParamField>
+    
+    <ParamField path="dataBits" type="5 | 6 | 7 | 8">
+      Data bits (default: 8)
+    </ParamField>
+    
+    <ParamField path="stopBits" type="1 | 1.5 | 2">
+      Stop bits (default: 1)
+    </ParamField>
+    
+    <ParamField path="parity" type="SerialParity">
+      Parity: `none`, `even`, `odd`, `mark`, or `space` (default: `none`)
+    </ParamField>
+    
+    <ParamField path="flowControl" type="SerialFlowControl">
+      Flow control: `none`, `xon/xoff`, or `rts/cts` (default: `none`)
+    </ParamField>
+    
+    <ParamField path="localEcho" type="boolean">
+      Force local echo (default: false)
+    </ParamField>
+    
+    <ParamField path="lineMode" type="boolean">
+      Buffer input and send on Enter (default: false)
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Example: Cisco Switch Connection
+
+```json
+{
+  "protocol": "serial",
+  "serialConfig": {
+    "path": "/dev/ttyUSB0",
+    "baudRate": 9600,
+    "dataBits": 8,
+    "stopBits": 1,
+    "parity": "none",
+    "flowControl": "none"
+  }
+}
+```
+
+## Character Encoding
+
+<ParamField path="charset" type="string">
+  Character encoding for the terminal session (e.g., `UTF-8`, `ISO-8859-1`)
+</ParamField>
+
+## Legacy Algorithm Support
+
+Enable support for older SSH algorithms (for network equipment, legacy servers).
+
+<ParamField path="legacyAlgorithms" type="boolean">
+  Enable legacy SSH key exchange and cipher algorithms
+</ParamField>
+
+<Warning>
+  Legacy algorithms are less secure. Only enable this for connecting to older devices that don't support modern algorithms.
+</Warning>
+
+## Font Customization
+
+Override the global terminal font settings per host.
+
+<ParamField path="fontFamily" type="string">
+  Terminal font family for this host
+</ParamField>
+
+<ParamField path="fontSize" type="number">
+  Terminal font size in points for this host
+</ParamField>
+
+### Example
+
+```json
+{
+  "fontFamily": "JetBrains Mono",
+  "fontSize": 14
+}
+```
+
+## Theme Override
+
+<ParamField path="theme" type="string">
+  Terminal theme ID to use for this host
+</ParamField>
+
+### Example
+
+```json
+{
+  "theme": "dracula"
+}
+```
+
+Available themes include: `netcatty-dark`, `netcatty-light`, `dracula`, `monokai`, `solarized-dark`, `solarized-light`, `nord-dark`, `tokyo-night`, and many more.
+
+## Distribution Detection
+
+<ParamField path="distro" type="string" readOnly>
+  Auto-detected Linux distribution ID (e.g., `ubuntu`, `debian`, `centos`)
+</ParamField>
+
+Netcatty automatically detects the remote system's distribution for optimized feature support.
+
+## Complete Configuration Example
+
+```json
+{
+  "id": "prod-web-01",
+  "label": "Production Web Server",
+  "hostname": "web-01.example.com",
+  "port": 22,
+  "username": "deploy",
+  "protocol": "ssh",
+  "authMethod": "key",
+  "identityFileId": "my-deploy-key",
+  "agentForwarding": true,
+  "environmentVariables": [
+    { "name": "NODE_ENV", "value": "production" },
+    { "name": "EDITOR", "value": "vim" }
+  ],
+  "startupCommand": "cd /var/www/app && git status",
+  "theme": "dracula",
+  "fontFamily": "Fira Code",
+  "fontSize": 13,
+  "keywordHighlightEnabled": true,
+  "tags": ["production", "web"],
+  "group": "Production/Web Servers"
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Environment Variables">
+    - Keep sensitive values out of environment variables
+    - Use consistent naming conventions
+    - Document required variables for team members
+  </Accordion>
+  
+  <Accordion title="Startup Commands">
+    - Keep commands lightweight to avoid connection delays
+    - Use `&&` to chain commands that depend on each other
+    - Avoid interactive prompts in startup commands
+  </Accordion>
+  
+  <Accordion title="Protocol Selection">
+    - Use SSH for secure connections
+    - Enable Mosh for unstable networks (WiFi, mobile)
+    - Use Telnet only for legacy equipment in trusted networks
+  </Accordion>
+</AccordionGroup>
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/guides/authentication">
+    Configure SSH keys, passwords, and certificates
+  </Card>
+  
+  <Card title="Keyword Highlighting" icon="highlighter" href="/guides/keyword-highlighting">
+    Customize host-specific highlight rules
+  </Card>
+  
+  <Card title="Custom Themes" icon="palette" href="/guides/custom-themes">
+    Create and apply custom terminal themes
+  </Card>
+  
+  <Card title="Proxy & Jump Hosts" icon="network-wired" href="/guides/proxy-jump-hosts">
+    Configure proxy servers and bastion hosts
+  </Card>
+</CardGroup>

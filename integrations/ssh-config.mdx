@@ -1,0 +1,465 @@
+---
+title: SSH Config Import
+description: Import existing SSH connections from ~/.ssh/config and keep them synchronized as a managed source
+---
+
+Netcatty can import SSH host definitions from your existing `~/.ssh/config` file and optionally keep them synchronized as a managed source.
+
+## Import Modes
+
+### One-Time Import
+
+Import hosts from SSH config once, creating independent Netcatty hosts that are no longer connected to the source file.
+
+**Use case:** Migrating from command-line SSH to Netcatty
+
+### Managed Source
+
+Import and establish a two-way sync relationship where Netcatty writes changes back to the SSH config file.
+
+**Use case:** Continue using both Netcatty GUI and command-line SSH with the same host definitions
+
+## Supported SSH Config Features
+
+Netcatty recognizes these SSH config directives:
+
+### Host Directive
+
+```
+Host myserver
+    HostName 192.168.1.100
+    User admin
+    Port 2222
+```
+
+**Mapping:**
+- `Host` → Label (connection name)
+- `HostName` → Hostname (actual IP/domain)
+- `User` → Username
+- `Port` → Port (default: 22)
+
+### ProxyJump / Jump Hosts
+
+```
+Host production-server
+    HostName 10.0.1.50
+    User deploy
+    ProxyJump bastion
+
+Host bastion
+    HostName bastion.example.com
+    User jumpuser
+```
+
+**Mapping:**
+- `ProxyJump` → `hostChain` with resolved host IDs
+- Multiple jumps: `ProxyJump bastion1,bastion2` creates a chain
+- Netcatty automatically creates inline hosts for unresolved jump references
+
+### Wildcard Patterns (Skipped)
+
+```
+Host *.example.com
+    User admin
+```
+
+Wildcard patterns are **skipped** during import as Netcatty manages individual host definitions.
+
+### Match Directive (Skipped)
+
+```
+Match host *.internal exec "check-vpn"
+    ProxyJump gateway
+```
+
+`Match` directives are **ignored** during import as they involve conditional logic.
+
+## Import Process
+
+### One-Time Import
+
+1. Click **Import** in the Hosts panel
+2. Select **SSH Config** format
+3. Choose your SSH config file (usually `~/.ssh/config`)
+4. Ensure **Managed Source** is **unchecked**
+5. Click **Import**
+6. Review import results:
+   - **Parsed** - Total host entries found
+   - **Imported** - Successfully imported hosts
+   - **Skipped** - Wildcard patterns or invalid entries
+   - **Duplicates** - Merged with existing hosts
+7. Click **Done**
+
+### Managed Source Import
+
+1. Click **Import** in the Hosts panel
+2. Select **SSH Config** format
+3. Choose your SSH config file
+4. **Check** the **Managed Source** option
+5. Enter a **Group Name** (e.g., "SSH Config Hosts")
+6. Click **Import**
+7. Netcatty creates a managed group and tracks the source file
+
+## Managed Source Behavior
+
+### Two-Way Sync
+
+When you import as a managed source:
+
+**Reading (Import):**
+- Netcatty reads host definitions from your SSH config
+- Creates/updates hosts in the managed group
+- Resolves ProxyJump chains to host IDs
+
+**Writing (Export):**
+- Changes to managed hosts are written back to SSH config
+- Netcatty maintains a managed block:
+  ```
+  # BEGIN NETCATTY MANAGED - DO NOT EDIT THIS BLOCK
+  Host myserver
+      HostName 192.168.1.100
+      User admin
+      Port 2222
+  # END NETCATTY MANAGED
+  ```
+- Content outside this block is preserved
+- Duplicate host definitions are removed from the unmanaged section
+
+### Managed Block Format
+
+Netcatty uses markers to identify its managed section:
+
+```
+# User's existing SSH config (preserved)
+Host personal-server
+    HostName example.com
+    User me
+
+# BEGIN NETCATTY MANAGED - DO NOT EDIT THIS BLOCK
+Host work-server
+    HostName 10.0.1.100
+    User admin
+    Port 2222
+
+Host staging
+    HostName staging.company.com
+    User deploy
+    ProxyJump work-server
+# END NETCATTY MANAGED
+
+# More user config (preserved)
+Host *.github.com
+    User git
+```
+
+### What Triggers Sync
+
+Netcatty automatically updates the SSH config file when:
+
+1. **Host added** to managed group
+2. **Host modified** (hostname, port, username, label)
+3. **Host deleted** from managed group
+4. **Host moved** into or out of managed group
+5. **Jump host chain** changed
+6. **Jump host details** changed (affects ProxyJump directive)
+
+### ProxyJump Serialization
+
+Netcatty serializes host chains back to ProxyJump format:
+
+**Example:**
+
+```typescript
+// Netcatty internal representation
+host.hostChain = {
+  hostIds: ['bastion-id', 'gateway-id']
+}
+
+// Written to SSH config as:
+Host production
+    HostName 10.0.1.50
+    User deploy
+    ProxyJump bastion.example.com,gateway.internal
+```
+
+If jump hosts are also in the managed group, their SSH config alias is used. Otherwise, the full connection string is written.
+
+## Managing Sources
+
+### View Managed Sources
+
+1. Look for groups with the 📄 icon (indicates managed source)
+2. Hover to see source file path
+3. Right-click the group for management options
+
+### Unmanage a Source
+
+**Option 1: Keep Hosts**
+1. Right-click the managed group
+2. Select **Unmanage Source**
+3. Hosts remain in Netcatty but are no longer written to SSH config
+4. The managed block in SSH config is cleared
+
+**Option 2: Remove Hosts**
+1. Right-click the managed group
+2. Select **Delete Group**
+3. Choose **Delete group and all hosts**
+4. Hosts are removed from Netcatty
+5. The managed block in SSH config is cleared
+
+### Re-import After Unmanaging
+
+If you unmanage a source but the SSH config file still exists:
+
+1. Import again as a managed source
+2. Netcatty will re-create the managed relationship
+3. Existing hosts are matched by hostname/port/username and updated
+4. New hosts are added
+
+## Import Warnings & Errors
+
+### Circular ProxyJump Reference
+
+```
+Host server-a
+    ProxyJump server-b
+
+Host server-b
+    ProxyJump server-a
+```
+
+**Warning:** `ssh_config: detected circular reference in ProxyJump for "server-a", skipping chain.`
+
+The host is imported but the ProxyJump is ignored to prevent infinite loops.
+
+### Unresolved Jump Host
+
+```
+Host production
+    ProxyJump unknown-bastion
+```
+
+**Warning:** `ssh_config: created inline jump host(s) for "production": unknown-bastion`
+
+Netcatty creates a placeholder host for `unknown-bastion` with minimal configuration. You should update it with the correct hostname.
+
+### Invalid Hostname
+
+```
+Host @invalid
+    HostName !!!
+```
+
+**Warning:** `ssh_config: skipped host "@invalid" (invalid hostname).`
+
+The entry is ignored due to invalid characters or format.
+
+### Duplicate Hosts
+
+If your SSH config contains multiple entries with the same hostname/port/username:
+
+```
+Host server-alias-1
+    HostName 192.168.1.100
+    User admin
+
+Host server-alias-2
+    HostName 192.168.1.100
+    User admin
+```
+
+Netcatty merges them into one host and combines their labels/tags.
+
+## Best Practices
+
+### When to Use Managed Source
+
+✅ **Use managed source when:**
+- You frequently use both GUI and command-line SSH
+- You share SSH config with other tools (Ansible, rsync, etc.)
+- You want a single source of truth for host definitions
+- You edit SSH config manually and want changes reflected in Netcatty
+
+❌ **Don't use managed source when:**
+- You only use Netcatty GUI
+- Your SSH config uses complex Match directives
+- You want Netcatty to have additional metadata (tags, custom groups) not in SSH config
+- You use wildcard patterns extensively
+
+### Organizing Managed Groups
+
+Recommended structure:
+
+```
+📄 SSH Config - Work      → ~/.ssh/config.d/work
+📄 SSH Config - Personal  → ~/.ssh/config.d/personal
+📁 Netcatty Only
+  ├─ Development Servers
+  ├─ Cloud VMs
+  └─ Raspberry Pis
+```
+
+Use SSH config includes for modular management:
+
+```
+# ~/.ssh/config
+Include ~/.ssh/config.d/*
+
+Host *
+    ServerAliveInterval 60
+```
+
+### Avoiding Conflicts
+
+1. **Don't manually edit the managed block** - Netcatty overwrites it
+2. **Keep non-managed hosts outside the markers** - They are preserved
+3. **Use unique host aliases** - Avoid duplicate Host entries
+4. **Test changes** - Verify with `ssh -G hostname` after sync
+
+## Implementation Details
+
+### Parsing Algorithm
+
+Netcatty parses SSH config using a token-based parser:
+
+```typescript
+// domain/vaultImport.ts:512
+const importFromSshConfig = (text: string): VaultImportResult => {
+  // Tokenize lines, skip comments and blank lines
+  // Recognize Host and Match keywords
+  // Extract HostName, User, Port, ProxyJump
+  // Build host chain from ProxyJump
+  // Detect circular references
+  // Create inline hosts for unresolved jumps
+}
+```
+
+### Serialization Format
+
+```typescript
+// domain/sshConfigSerializer.ts
+const serializeHostsToSshConfig = (
+  managedHosts: Host[],
+  allHosts: Host[]
+): string => {
+  // Convert Netcatty hosts back to SSH config format
+  // Resolve hostChain to ProxyJump directives
+  // Format with proper indentation
+}
+```
+
+### Sync Mechanism
+
+```typescript
+// application/state/useManagedSourceSync.ts
+const checkAndSync = () => {
+  // Compare previous and current host states
+  // Detect changes in managed hosts
+  // Detect changes in jump hosts (even outside managed group)
+  // Trigger file write for changed sources
+  // Merge with existing file content
+  // Preserve non-managed sections
+}
+```
+
+### File Writing
+
+When writing back to SSH config:
+
+1. Read existing file content
+2. Locate managed block markers
+3. If no markers exist:
+   - Remove duplicate host entries that match managed hosts
+   - Append managed block at the end
+4. If markers exist:
+   - Replace content between markers
+   - Preserve everything outside
+5. Write atomically to prevent corruption
+
+## Comparison with Other Tools
+
+| Feature | Netcatty | Termius | iTerm2 | PuTTY |
+|---------|----------|---------|--------|-------|
+| Import SSH config | ✅ | ❌ | ✅ | ❌ |
+| Two-way sync | ✅ | ❌ | ❌ | ❌ |
+| ProxyJump support | ✅ | ✅ | ✅ | ❌ |
+| Managed blocks | ✅ | ❌ | ❌ | ❌ |
+| Preserve user config | ✅ | ❌ | ✅ | N/A |
+
+## Troubleshooting
+
+### Changes Not Syncing to File
+
+1. Check file permissions: `ls -l ~/.ssh/config`
+2. Verify managed source is still active (group has 📄 icon)
+3. Check Netcatty logs for write errors
+4. Ensure the parent directory exists and is writable
+
+### SSH Can't Find Hosts
+
+1. Verify managed block syntax: `ssh -G hostname`
+2. Check SSH config path: `ssh -F ~/.ssh/config -G hostname`
+3. Ensure no syntax errors: `ssh -T git@github.com` (test connection)
+4. Check for duplicate Host entries
+
+### Managed Block Removed
+
+If you accidentally delete the managed block markers:
+
+1. Netcatty will detect missing markers on next sync
+2. It will append a new managed block at the end
+3. This may create duplicate entries - clean up manually
+4. Or unmanage and re-import to start fresh
+
+### ProxyJump Not Working
+
+1. Ensure jump hosts are defined before dependent hosts
+2. Verify jump hosts are accessible: `ssh bastion`
+3. Check SSH version: `ssh -V` (ProxyJump requires OpenSSH 7.3+)
+4. For older SSH, use `ProxyCommand ssh -W %h:%p bastion` instead
+
+## Security Considerations
+
+- **File permissions**: SSH config should be `0600` (readable/writable by user only)
+- **Netcatty respects permissions**: Won't write if file is read-only
+- **No password export**: Netcatty never writes passwords to SSH config
+- **Key references**: SSH keys are stored separately in Netcatty, not in SSH config
+- **Hostname exposure**: SSH config is plaintext, so hostnames/IPs are visible to anyone with file access
+
+## Advanced Usage
+
+### Multiple SSH Config Files
+
+You can manage multiple SSH config files as separate sources:
+
+```
+~/.ssh/config          → Main config (managed)
+~/.ssh/config.d/work   → Work hosts (managed)
+~/.ssh/config.d/home   → Personal hosts (managed)
+```
+
+Import each file as a separate managed source with different group names.
+
+### Conditional Includes
+
+SSH config supports conditional includes:
+
+```
+Match host *.internal
+    Include ~/.ssh/config.d/internal
+```
+
+Netcatty can manage the included file as a separate source.
+
+### Custom SSH Options
+
+For SSH directives not supported by Netcatty (e.g., `StrictHostKeyChecking`, `ForwardAgent`):
+
+1. Keep them outside the managed block
+2. Use wildcard patterns in the non-managed section:
+   ```
+   Host *
+       StrictHostKeyChecking accept-new
+       ServerAliveInterval 60
+   ```
+3. Netcatty preserves these global settings

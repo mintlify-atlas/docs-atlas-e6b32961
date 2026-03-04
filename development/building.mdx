@@ -1,0 +1,523 @@
+---
+title: Building Netcatty
+description: Build from source, development setup, and packaging for distribution
+icon: hammer
+---
+
+This guide covers building Netcatty from source, setting up a development environment, and packaging for different platforms.
+
+## Prerequisites
+
+### Required Software
+
+- **Node.js 18+** and **npm**
+- **Git**
+- **Platform-specific tools:**
+  - **macOS:** Xcode Command Line Tools
+  - **Windows:** Visual Studio Build Tools (C++ workload)
+  - **Linux:** build-essential, python3
+
+### Installation
+
+<Tabs>
+  <Tab title="macOS">
+    ```bash
+    # Install Homebrew (if not installed)
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+    # Install Node.js
+    brew install node@18
+
+    # Install Xcode Command Line Tools
+    xcode-select --install
+    ```
+  </Tab>
+  <Tab title="Windows">
+    ```powershell
+    # Install Node.js from https://nodejs.org/
+    # Or use Chocolatey:
+    choco install nodejs-lts
+
+    # Install Visual Studio Build Tools
+    # Download from: https://visualstudio.microsoft.com/downloads/
+    # Select "Desktop development with C++" workload
+    ```
+  </Tab>
+  <Tab title="Linux (Ubuntu/Debian)">
+    ```bash
+    # Install Node.js (via NodeSource)
+    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+
+    # Install build dependencies
+    sudo apt-get install -y build-essential python3 git
+    ```
+  </Tab>
+</Tabs>
+
+## Clone Repository
+
+From `README.md:229-238`:
+
+```bash
+# Clone the repository
+git clone https://github.com/binaricat/Netcatty.git
+cd Netcatty
+
+# Install dependencies
+npm install
+
+# Start development mode (Vite + Electron)
+npm run dev
+```
+
+## Development Setup
+
+### Install Dependencies
+
+From `package.json:11-29` and `README.md:235`:
+
+```bash
+# Install all dependencies
+npm install
+
+# This runs two post-install scripts:
+# 1. electron-builder install-app-deps (rebuilds native modules)
+# 2. patch-package (applies patches to node_modules)
+```
+
+<Info>
+The `postinstall` script automatically rebuilds native modules (`node-pty`, `serialport`, etc.) for Electron and applies necessary patches.
+</Info>
+
+### Development Mode
+
+From `package.json:12-13`:
+
+```bash
+# Start development server
+npm run dev
+```
+
+This command:
+1. Runs ESLint to check code quality
+2. Starts Vite dev server on `http://localhost:5173`
+3. Waits for Vite to be ready
+4. Launches Electron pointing to the dev server
+
+**Implementation:**
+```json
+"dev": "npm run lint && concurrently -k \"vite\" \"npm:dev:electron\"",
+"dev:electron": "wait-on http-get://localhost:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 node electron/launch.cjs"
+```
+
+### Hot Reload
+
+In development mode:
+- **Renderer process (React):** Hot Module Replacement (HMR) via Vite
+- **Main process (Electron):** Restart required (close and re-run `npm run dev`)
+
+<Tip>
+Changes to `*.tsx`, `*.ts` files in `components/`, `domain/`, `application/`, `infrastructure/` hot reload automatically.
+
+Changes to `electron/*.cjs` files require restarting `npm run dev`.
+</Tip>
+
+### Linting
+
+From `package.json:27-28`:
+
+```bash
+# Check code style and errors
+npm run lint
+
+# Auto-fix issues
+npm run lint:fix
+```
+
+ESLint configuration in `eslint.config.js`.
+
+## Project Structure
+
+From `README.md:241-258`:
+
+```
+├── App.tsx                 # Main React application
+├── components/             # React components
+│   ├── Terminal.tsx        # Terminal component
+│   ├── SftpView.tsx        # SFTP browser
+│   ├── VaultView.tsx       # Host management
+│   ├── KeyManager.tsx      # SSH key management
+│   └── ...
+├── application/            # State management & i18n
+├── domain/                 # Domain models & logic
+├── infrastructure/         # Services & adapters
+├── electron/               # Electron main process
+│   ├── main.cjs            # Main entry
+│   └── bridges/            # IPC bridges
+└── public/                 # Static assets & icons
+```
+
+See [Architecture Overview](/development/architecture) for detailed layer descriptions.
+
+## Building for Production
+
+### Production Build
+
+From `package.json:15-16`:
+
+```bash
+# Build for production
+npm run build
+```
+
+**Build process:**
+1. Runs `prebuild` script: `node scripts/copy-monaco.cjs` (copies Monaco Editor assets)
+2. Runs Vite build: bundles React app to `dist/`
+3. Output: Optimized JavaScript, CSS, and assets
+
+**Build configuration:** `vite.config.ts`
+
+### Preview Production Build
+
+```bash
+# Build and preview
+npm run build
+npm run preview
+```
+
+### Running Production Build
+
+```bash
+# Build and run with Electron
+npm run build
+npm run start
+```
+
+## Packaging
+
+### Package for Current Platform
+
+From `package.json:18`:
+
+```bash
+# Package for your current OS
+npm run pack
+```
+
+Outputs to `dist/` directory:
+- **macOS:** `.dmg` and `.zip`
+- **Windows:** `.exe` installer
+- **Linux:** `.AppImage`, `.deb`, `.rpm`
+
+### Package for Specific Platforms
+
+From `package.json:20-22` and `README.md:266-276`:
+
+```bash
+# macOS (DMG + ZIP)
+npm run pack:mac
+
+# Windows (NSIS installer)
+npm run pack:win
+
+# Linux (AppImage + DEB + RPM)
+npm run pack:linux
+
+# Linux x64 only
+npm run pack:linux-x64
+
+# Linux ARM64 only
+npm run pack:linux-arm64
+```
+
+<Warning>
+**Cross-platform builds:** Building for other platforms from your current OS may require additional setup (e.g., building macOS packages on Linux requires macOS SDK).
+</Warning>
+
+### Package to Directory (No Installer)
+
+From `package.json:19`:
+
+```bash
+# Package without creating installer
+npm run pack:dir
+```
+
+Useful for testing packaged app without full installer creation.
+
+## Electron Builder Configuration
+
+Packaging is configured in `electron-builder.config.cjs`.
+
+### Supported Architectures
+
+From `README.md:209-214`:
+
+| OS | Support |
+|:---|:--------|
+| **macOS** | Universal (x64 / arm64) |
+| **Windows** | x64 / arm64 |
+| **Linux** | x64 / arm64 |
+
+### Build Artifacts
+
+After packaging, artifacts are in `dist/`:
+
+```
+dist/
+├── Netcatty-1.0.0.dmg              # macOS installer
+├── Netcatty-1.0.0-mac.zip          # macOS app (unsigned)
+├── Netcatty-Setup-1.0.0.exe        # Windows installer
+├── Netcatty-1.0.0.AppImage         # Linux AppImage
+├── netcatty_1.0.0_amd64.deb        # Debian package
+└── netcatty-1.0.0.x86_64.rpm       # RPM package
+```
+
+## Native Dependencies
+
+Netcatty uses several native Node.js modules that require compilation:
+
+- **node-pty** (1.1.0-beta19) - PTY (pseudoterminal) for local shell
+- **serialport** (13.0.0) - Serial port communication
+- **ssh2** (via ssh2-sftp-client) - SSH protocol implementation
+
+### Rebuilding Native Modules
+
+From `package.json:25-26`:
+
+```bash
+# Rebuild native modules for Electron
+npm run rebuild
+
+# Or manually:
+npm run postinstall
+```
+
+This uses `electron-builder install-app-deps` to rebuild native modules against Electron's Node.js version.
+
+### Troubleshooting Native Modules
+
+**Build fails on `node-pty`:**
+```bash
+# Ensure build tools are installed
+# macOS:
+xcode-select --install
+
+# Windows:
+# Install Visual Studio Build Tools with C++ workload
+
+# Linux:
+sudo apt-get install build-essential python3
+```
+
+**Build fails on `serialport`:**
+```bash
+# Same requirements as node-pty
+# Ensure you have a C++ compiler
+```
+
+## Environment Variables
+
+### Development
+
+```bash
+# Vite dev server URL (set automatically by npm run dev)
+VITE_DEV_SERVER_URL=http://localhost:5173
+
+# Disable sandbox (debugging only, not recommended)
+NETCATTY_NO_SANDBOX=1
+```
+
+### Build
+
+```bash
+# Suppress Node.js deprecation warnings during electron-builder
+NODE_OPTIONS=--disable-warning=DEP0190
+```
+
+From `package.json:18`:
+```json
+"pack": "npm run build && cross-env NODE_OPTIONS=--disable-warning=DEP0190 electron-builder ..."
+```
+
+## Build Scripts Reference
+
+From `package.json:11-28`:
+
+| Script | Command | Purpose |
+|--------|---------|----------|
+| `dev` | `npm run lint && concurrently ...` | Start development mode |
+| `build` | `vite build` | Build production bundle |
+| `preview` | `vite preview` | Preview production build |
+| `start` | `node electron/launch.cjs` | Run production app |
+| `pack` | `npm run build && electron-builder ...` | Package for current platform |
+| `pack:dir` | `... --dir ...` | Package to directory (no installer) |
+| `pack:win` | `... --win ...` | Package for Windows |
+| `pack:mac` | `... --mac ...` | Package for macOS |
+| `pack:linux` | `... --linux ...` | Package for Linux |
+| `pack:linux-x64` | `... --linux --x64 ...` | Package for Linux x64 |
+| `pack:linux-arm64` | `... --linux --arm64 ...` | Package for Linux ARM64 |
+| `postinstall` | `electron-builder install-app-deps && patch-package` | Rebuild natives + apply patches |
+| `rebuild` | `electron-builder install-app-deps` | Rebuild native modules |
+| `lint` | `eslint .` | Check code style |
+| `lint:fix` | `eslint . --fix` | Auto-fix code style |
+
+## Dependencies
+
+### Runtime Dependencies
+
+Key dependencies from `package.json:30-63`:
+
+**Core:**
+- `electron` (40.1.0)
+- `react` (19.2.1)
+- `react-dom` (19.2.1)
+
+**Terminal:**
+- `@xterm/xterm` (5.5.0)
+- `@xterm/addon-fit`, `@xterm/addon-webgl`, etc.
+
+**SSH/SFTP:**
+- `ssh2-sftp-client` (12.0.1)
+- `node-pty` (1.1.0-beta19)
+- `serialport` (13.0.0)
+
+**UI:**
+- `@radix-ui/*` (various) - Headless UI components
+- `lucide-react` (0.560.0) - Icons
+- `@monaco-editor/react` (4.7.0) - Code editor
+- `tailwind-merge` (3.4.0), `clsx` (2.1.1) - CSS utilities
+
+**Fonts:**
+- `@fontsource/jetbrains-mono` (5.2.8)
+- `@fontsource/space-grotesk` (5.2.10)
+
+### Development Dependencies
+
+Key devDependencies from `package.json:65-84`:
+
+**Build:**
+- `vite` (7.2.7)
+- `@vitejs/plugin-react` (5.1.2)
+- `electron-builder` (26.0.12)
+
+**Styling:**
+- `tailwindcss` (4.1.17)
+- `@tailwindcss/vite`, `@tailwindcss/postcss` (4.1.17)
+
+**TypeScript:**
+- `typescript` (5.9.3)
+- `@types/node` (25.0.0)
+
+**Linting:**
+- `eslint` (9.39.1)
+- `@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser` (8.49.0)
+- `eslint-plugin-react-hooks` (7.0.1)
+- `eslint-plugin-unused-imports` (4.3.0)
+
+**Utilities:**
+- `concurrently` (9.2.1) - Run multiple commands
+- `cross-env` (10.1.0) - Cross-platform environment variables
+- `wait-on` (9.0.3) - Wait for dev server
+- `patch-package` (8.0.0) - Patch node_modules
+
+## Vite Configuration
+
+Build configuration in `vite.config.ts`:
+
+```typescript
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+
+export default defineConfig({
+  plugins: [
+    react(),
+    tailwindcss(),
+  ],
+  base: './', // Relative paths for Electron
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+  },
+  // ... additional config
+})
+```
+
+## Troubleshooting
+
+### Build Errors
+
+**Error: Cannot find module 'electron'**
+```bash
+# Reinstall dependencies
+rm -rf node_modules package-lock.json
+npm install
+```
+
+**Error: Native module compilation failed**
+```bash
+# Ensure build tools are installed (see Prerequisites)
+# Rebuild native modules
+npm run rebuild
+```
+
+**Error: Vite build fails**
+```bash
+# Clear Vite cache
+rm -rf node_modules/.vite
+npm run build
+```
+
+### Development Issues
+
+**Hot reload not working:**
+- Check that Vite dev server is running on port 5173
+- Restart `npm run dev`
+- Clear browser cache (Ctrl+Shift+R / Cmd+Shift+R)
+
+**Electron window is blank:**
+- Check DevTools Console for errors (Ctrl+Shift+I / Cmd+Option+I)
+- Verify Vite dev server is accessible at `http://localhost:5173`
+- Check `electron/main.cjs` for loading errors
+
+**Changes to main process not applying:**
+- Restart `npm run dev` (main process doesn't hot reload)
+
+### Packaging Issues
+
+**macOS: "App is damaged"**
+
+See `README.md:217-221`:
+```bash
+# Remove quarantine attribute
+xattr -cr /Applications/Netcatty.app
+
+# Or right-click → Open → Click "Open" in dialog
+```
+
+**Windows: Missing DLLs**
+- Ensure Visual Studio C++ Redistributable is installed
+- Electron includes necessary DLLs in packaged app
+
+**Linux: AppImage won't run**
+```bash
+# Make executable
+chmod +x Netcatty-*.AppImage
+
+# If FUSE errors
+sudo apt install fuse libfuse2
+./Netcatty-*.AppImage --appimage-extract-and-run
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Architecture" icon="sitemap" href="/development/architecture">
+    Understand the codebase structure
+  </Card>
+  <Card title="Contributing" icon="code-pull-request" href="/development/contributing">
+    Learn how to contribute to Netcatty
+  </Card>
+</CardGroup>

@@ -1,0 +1,388 @@
+---
+title: Terminal Workspaces
+description: Manage multiple terminal sessions with split panes, tabs, and workspace organization for efficient multitasking
+---
+
+Netcatty's workspace system lets you organize multiple terminal sessions with split panes, tabs, and persistent layouts that restore automatically between sessions.
+
+## Understanding Workspaces
+
+A **workspace** is a collection of terminal sessions organized in a specific layout:
+
+- **Panes**: Individual terminal sessions that can be split horizontally or vertically
+- **Tabs**: Multiple workspaces within the main window
+- **Layouts**: Split configurations that define pane positions and sizes
+- **Sessions**: Active SSH/terminal connections within panes
+
+![Split Terminal Windows](https://raw.githubusercontent.com/binaricat/Netcatty/main/screenshots/split-window.png)
+
+## Creating Workspaces
+
+### New Workspace Tab
+
+Create a new workspace:
+
+1. Click the **+** button in the tab bar
+2. Or press `⌘+T` (macOS) / `Ctrl+T` (Windows/Linux)
+
+This creates a blank workspace where you can add terminal sessions.
+
+### Quick Connect
+
+Connect to a host in a new workspace:
+
+1. Double-click a host in the vault
+2. Or right-click → **Connect**
+3. The connection opens in the current workspace or creates a new tab
+
+### From Snippets
+
+Create workspaces from saved snippet configurations:
+
+1. Right-click a snippet with workspace definition
+2. Select **Open Workspace**
+3. Netcatty creates the layout and connects to specified hosts
+
+## Split Panes
+
+Split terminal sessions for side-by-side multitasking:
+
+<Tabs>
+  <Tab title="Horizontal Split">
+    Split the current pane horizontally (top/bottom):
+
+    - Right-click terminal → **Split Horizontal**
+    - Or press `⌘+D` (macOS) / `Ctrl+D` (Windows/Linux)
+
+    ```
+    ┌────────────────┐
+    │   Pane 1       │
+    │   (top)        │
+    ├────────────────┤
+    │   Pane 2       │
+    │   (bottom)     │
+    └────────────────┘
+    ```
+  </Tab>
+
+  <Tab title="Vertical Split">
+    Split the current pane vertically (left/right):
+
+    - Right-click terminal → **Split Vertical**
+    - Or press `⌘+Shift+D` (macOS) / `Ctrl+Shift+D` (Windows/Linux)
+
+    ```
+    ┌────────┬────────┐
+    │        │        │
+    │ Pane 1 │ Pane 2 │
+    │ (left) │ (right)│
+    │        │        │
+    └────────┴────────┘
+    ```
+  </Tab>
+
+  <Tab title="Nested Splits">
+    Create complex layouts with nested splits:
+
+    ```
+    ┌────────┬────────┐
+    │        │ Pane 2 │
+    │ Pane 1 ├────────┤
+    │        │ Pane 3 │
+    └────────┴────────┘
+    ```
+
+    Each pane can be split further to create custom layouts.
+  </Tab>
+</Tabs>
+
+### Resizing Panes
+
+Adjust pane sizes:
+
+1. Hover over the divider between panes
+2. Cursor changes to resize handle
+3. Click and drag to resize
+4. Release to apply new size
+
+Panes maintain relative proportions when the window is resized.
+
+## Focus and Navigation
+
+### Focus Panes
+
+Switch focus between panes:
+
+| Action | macOS | Windows/Linux |
+|--------|-------|---------------|
+| Next pane | `⌘+]` | `Ctrl+]` |
+| Previous pane | `⌘+[` | `Ctrl+[` |
+| Pane 1 | `⌘+1` | `Ctrl+1` |
+| Pane 2 | `⌘+2` | `Ctrl+2` |
+| Pane 3-9 | `⌘+3...9` | `Ctrl+3...9` |
+
+The focused pane has a highlighted border and receives all keyboard input.
+
+### Navigate Tabs
+
+Switch between workspace tabs:
+
+| Action | macOS | Windows/Linux |
+|--------|-------|---------------|
+| Next tab | `⌘+Shift+]` | `Ctrl+Shift+]` |
+| Previous tab | `⌘+Shift+[` | `Ctrl+Shift+[` |
+| Tab 1-9 | `⌘+Alt+1...9` | `Ctrl+Alt+1...9` |
+| Close tab | `⌘+W` | `Ctrl+W` |
+
+## View Modes
+
+Netcatty supports two view modes for workspaces:
+
+<Tabs>
+  <Tab title="Split View">
+    Default mode showing all panes simultaneously:
+
+    ```json
+    {
+      "viewMode": "split"
+    }
+    ```
+
+    Best for:
+    - Monitoring multiple systems
+    - Comparing outputs side-by-side
+    - Running commands in parallel
+  </Tab>
+
+  <Tab title="Focus View">
+    Maximize a single pane while keeping others accessible:
+
+    ```json
+    {
+      "viewMode": "focus",
+      "focusedSessionId": "session-123"
+    }
+    ```
+
+    Toggle focus view:
+    - Press `⌘+Shift+F` (macOS) / `Ctrl+Shift+F` (Windows/Linux)
+    - Or right-click pane → **Maximize Pane**
+
+    Best for:
+    - Deep work on one system
+    - Reading long outputs
+    - Editing files in SFTP
+  </Tab>
+</Tabs>
+
+## Session Management
+
+### Active Sessions
+
+Each pane contains an active session with:
+
+- **Session ID**: Unique identifier for the connection
+- **Host reference**: Link to vault host configuration
+- **Working directory**: Current remote directory
+- **Connection state**: Connected, connecting, or disconnected
+
+### Close Pane
+
+Close the current pane:
+
+- Right-click → **Close Pane**
+- Or press `⌘+Shift+W` (macOS) / `Ctrl+Shift+W` (Windows/Linux)
+
+<Note>
+Closing a pane terminates the SSH session. Use `exit` in the terminal to disconnect gracefully before closing.
+</Note>
+
+### Reconnect
+
+If a session disconnects, reconnect without recreating the pane:
+
+1. Click the **Reconnect** button in the disconnected pane
+2. Or right-click → **Reconnect**
+3. Netcatty attempts to reestablish the connection
+
+## Workspace Persistence
+
+Netcatty automatically saves workspace state:
+
+### Auto-Save
+
+Workspaces are saved automatically:
+- When you close the app
+- When you switch workspaces
+- Periodically during use
+
+Saved state includes:
+- Pane layout (split configuration)
+- Host connections for each pane
+- Tab names and order
+- View mode (split/focus)
+- Working directories
+
+### Restore on Launch
+
+When you launch Netcatty:
+
+<Steps>
+  <Step title="Load Workspace State">
+    Netcatty reads the saved workspace configuration from local storage.
+  </Step>
+
+  <Step title="Recreate Layout">
+    Panes and splits are recreated with the same positions and sizes.
+  </Step>
+
+  <Step title="Reconnect Sessions">
+    Each pane automatically reconnects to its last host (if configured to do so in settings).
+  </Step>
+</Steps>
+
+<Tip>
+Disable auto-reconnect in **Settings** → **Sessions** → **Restore sessions on launch** if you prefer to manually connect.
+</Tip>
+
+## Broadcast Mode
+
+Send input to multiple panes simultaneously:
+
+### Enable Broadcast
+
+1. Click the **Broadcast** button in the toolbar
+2. Or press `⌘+Shift+B` (macOS) / `Ctrl+Shift+B` (Windows/Linux)
+3. The broadcast icon appears in all panes
+
+### Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Package Updates" icon="download">
+    Run `apt update && apt upgrade` on multiple servers at once.
+  </Card>
+  <Card title="Configuration Changes" icon="file-code">
+    Edit config files simultaneously across a cluster.
+  </Card>
+  <Card title="Monitoring" icon="chart-line">
+    Run `top` or `htop` on all servers to compare resource usage.
+  </Card>
+  <Card title="Log Tailing" icon="file-lines">
+    Tail logs on multiple nodes: `tail -f /var/log/app.log`
+  </Card>
+</CardGroup>
+
+<Warning>
+Be careful with destructive commands in broadcast mode. Double-check you're connected to the intended hosts before running commands like `rm`, `systemctl restart`, or database migrations.
+</Warning>
+
+## Workspace Shortcuts
+
+Complete keyboard shortcut reference:
+
+### Pane Management
+
+| Action | macOS | Windows/Linux |
+|--------|-------|---------------|
+| New pane (duplicate) | `⌘+N` | `Ctrl+N` |
+| Split horizontal | `⌘+D` | `Ctrl+D` |
+| Split vertical | `⌘+Shift+D` | `Ctrl+Shift+D` |
+| Close pane | `⌘+Shift+W` | `Ctrl+Shift+W` |
+| Focus next | `⌘+]` | `Ctrl+]` |
+| Focus previous | `⌘+[` | `Ctrl+[` |
+| Maximize pane | `⌘+Shift+F` | `Ctrl+Shift+F` |
+
+### Tab Management
+
+| Action | macOS | Windows/Linux |
+|--------|-------|---------------|
+| New tab | `⌘+T` | `Ctrl+T` |
+| Close tab | `⌘+W` | `Ctrl+W` |
+| Next tab | `⌘+Shift+]` | `Ctrl+Shift+]` |
+| Previous tab | `⌘+Shift+[` | `Ctrl+Shift+[` |
+| Go to tab 1-9 | `⌘+Alt+1...9` | `Ctrl+Alt+1...9` |
+
+### Other
+
+| Action | macOS | Windows/Linux |
+|--------|-------|---------------|
+| Toggle broadcast | `⌘+Shift+B` | `Ctrl+Shift+B` |
+| Quick switcher | `⌘+K` | `Ctrl+K` |
+| SFTP browser | `⌘+E` | `Ctrl+E` |
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Organize by Purpose">
+    Group related servers in one workspace:
+    - **Web Cluster**: Load balancer + app servers
+    - **Database Setup**: Primary + replicas
+    - **Monitoring**: Metrics servers + log aggregator
+  </Accordion>
+
+  <Accordion title="Use Meaningful Tab Names">
+    Rename workspace tabs for clarity:
+    1. Right-click the tab
+    2. Select **Rename Tab**
+    3. Enter a descriptive name like "Production Deployment" or "Dev Environment"
+  </Accordion>
+
+  <Accordion title="Save Layouts as Snippets">
+    Create reusable workspace layouts:
+    1. Set up your ideal layout with splits and connections
+    2. Save as a snippet with workspace configuration
+    3. Launch the layout instantly from the snippets panel
+  </Accordion>
+
+  <Accordion title="Limit Broadcast Scope">
+    When using broadcast mode:
+    - Close or separate panes that shouldn't receive broadcasted input
+    - Verify all panes show the correct hosts before broadcasting
+    - Test with a safe command like `pwd` first
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Workspace Not Restoring">
+    If workspace state doesn't restore on launch:
+
+    - Check **Settings** → **Sessions** → **Restore sessions on launch** is enabled
+    - Verify local storage is not full or corrupted
+    - Try manually saving workspace: **File** → **Save Workspace**
+  </Accordion>
+
+  <Accordion title="Split Not Working">
+    If split commands don't create new panes:
+
+    - Ensure a terminal is focused (not vault or settings)
+    - Check you have an active session in the current pane
+    - Try splitting from the context menu instead of keyboard shortcut
+  </Accordion>
+
+  <Accordion title="Broadcast Affecting Wrong Panes">
+    If broadcast sends input to unexpected panes:
+
+    - Disable broadcast and re-enable to reset
+    - Close unintended panes or move them to a separate tab
+    - Use pane numbers (`⌘+1`, `⌘+2`) to verify focus before broadcasting
+  </Accordion>
+</AccordionGroup>
+
+## Related Topics
+
+<CardGroup cols={2}>
+  <Card title="Split Terminals Guide" icon="window-restore" href="/guides/split-terminals">
+    Detailed guide to split pane layouts and navigation
+  </Card>
+  <Card title="Workspace Sessions" icon="floppy-disk" href="/guides/workspace-sessions">
+    Learn about session persistence and restoration
+  </Card>
+  <Card title="Keyboard Shortcuts" icon="keyboard" href="/quickstart#keyboard-shortcuts">
+    Complete keyboard shortcut reference
+  </Card>
+  <Card title="Host Configuration" icon="gear" href="/guides/host-configuration">
+    Configure hosts for optimal workspace usage
+  </Card>
+</CardGroup>

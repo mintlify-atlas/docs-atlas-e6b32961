@@ -1,0 +1,161 @@
+---
+title: Introduction to Netcatty
+description: A modern SSH client, SFTP browser, and terminal manager for macOS, Windows, and Linux
+---
+
+# Introduction to Netcatty
+
+Netcatty is a modern SSH client and terminal manager designed for developers, sysadmins, and DevOps engineers who need to manage multiple remote servers efficiently. Built with Electron, React, and xterm.js, it provides a beautiful and feature-rich workspace for SSH connections, SFTP file transfers, and terminal operations.
+
+<img src="/screenshots/main-window-dark.png" alt="Netcatty Main Interface" />
+
+## What is Netcatty?
+
+Netcatty is a comprehensive solution for remote server management:
+
+- **SSH Client Alternative** - A modern replacement for PuTTY, Termius, SecureCRT, and macOS Terminal.app
+- **SFTP File Manager** - Powerful dual-pane file browser with drag-and-drop support
+- **Terminal Workspace** - Split panes, tabs, and session management for multi-tasking
+- **Multi-Protocol Support** - SSH, local terminal, Telnet, Mosh, and Serial connections
+- **Not a Shell** - Netcatty connects to shells via SSH/Telnet/Mosh or local/serial sessions
+
+## Key Features
+
+### Vault Organization
+
+<Card title="Multiple View Modes" icon="layout">
+  Switch between **grid**, **list**, and **tree** views to match your workflow. Grid view provides quick visual overview, list view enables dense scanning, and tree view offers hierarchical navigation.
+</Card>
+
+<img src="/screenshots/vault_grid_view.png" alt="Vault Grid View" />
+
+- **Fast Search** - Quickly locate hosts and groups across your entire vault
+- **Drag & Drop** - Organize hosts by dragging them between groups
+- **Tagging System** - Categorize and filter hosts using custom tags
+
+### Terminal Workspaces
+
+<Card title="Split Panes" icon="columns">
+  Work in multiple sessions simultaneously with horizontal and vertical splits. Monitor deployments, logs, and metrics side-by-side without juggling windows.
+</Card>
+
+<img src="/screenshots/split-window.png" alt="Split Terminal Windows" />
+
+- **Session Management** - Run multiple connections in tabs and panes
+- **Session Restore** - Pick up where you left off with workspace persistence
+- **Broadcast Mode** - Send commands to multiple terminals simultaneously
+- **Custom Themes** - Choose from built-in themes or create your own
+- **Keyword Highlighting** - Customize highlight rules for errors, warnings, and important patterns
+
+### SFTP & File Management
+
+<Card title="Built-in Editor" icon="file-code">
+  Edit remote files directly in Netcatty without downloading to a separate editor. Supports syntax highlighting via Monaco Editor.
+</Card>
+
+- **Drag & Drop** - Upload and download files by dragging them between panes or from your desktop
+- **File Operations** - Copy, cut, paste, rename, delete with familiar keyboard shortcuts
+- **Bookmarks** - Save frequently accessed remote paths for quick navigation
+- **Encoding Support** - Handle filenames in UTF-8, GB18030, or auto-detect
+- **Sudo SFTP** - Perform SFTP operations with elevated privileges
+
+### Advanced Features
+
+**Port Forwarding**
+- Local, remote, and dynamic (SOCKS) port forwarding
+- Auto-start rules that activate when the app launches
+- Visual status monitoring for active tunnels
+
+**Connection Management**
+- Jump hosts/bastion support via host chaining
+- HTTP and SOCKS5 proxy configuration
+- Multiple authentication methods: password, SSH keys, certificates
+- SSH key generation and management (RSA, ECDSA, ED25519)
+- Identity system for reusable credentials
+
+**Terminal Customization**
+- Custom font family and size per host or globally
+- WebGL or Canvas rendering for optimal performance
+- Configurable cursor style and blink behavior
+- Adjustable scrollback buffer (up to 10,000+ lines)
+- Link detection with configurable modifier keys
+
+**Productivity Tools**
+- **Snippets** - Save and execute frequently used commands with keyboard shortcuts
+- **Command Palette** - Quick access to all features (⌘+K or Ctrl+K)
+- **Quick Switcher** - Jump between hosts and sessions instantly
+- **Shell History** - Search and reuse commands from past sessions
+- **Connection Logs** - Review and replay terminal sessions
+
+## Who is Netcatty For?
+
+<CardGroup cols={3}>
+  <Card title="Developers" icon="code">
+    Manage development servers, debug applications, and sync code with integrated SFTP workflows
+  </Card>
+  
+  <Card title="System Administrators" icon="server">
+    Monitor multiple servers, perform maintenance tasks, and organize infrastructure with the Vault system
+  </Card>
+  
+  <Card title="DevOps Engineers" icon="workflow">
+    Deploy applications, manage configurations, and troubleshoot issues across distributed systems
+  </Card>
+</CardGroup>
+
+## Supported Platforms
+
+| Platform | Architecture Support |
+|----------|---------------------|
+| **macOS** | Universal (x64 / arm64) |
+| **Windows** | x64 / arm64 |
+| **Linux** | x64 / arm64 |
+
+## Supported Linux Distributions
+
+Netcatty automatically detects and displays OS icons for connected hosts:
+
+- Ubuntu, Debian, Linux Mint
+- CentOS, Red Hat Enterprise Linux, Rocky Linux
+- Fedora, Amazon Linux, Oracle Linux
+- Arch Linux, openSUSE
+- Alpine Linux, Kali Linux
+
+## Why Choose Netcatty?
+
+If you regularly work with multiple servers, Netcatty is built for speed and flow:
+
+<Note>
+  **Workspace-first design** - Split panes + tabs + session restore for "always-on" workflows where you can pick up exactly where you left off.
+</Note>
+
+- **Vault Organization** - Grid/list/tree views with fast search and drag-friendly workflows for managing dozens or hundreds of hosts
+- **Serious SFTP** - Built-in editor + drag & drop + smooth file operations eliminate the need for separate FTP clients
+- **Open Source** - Licensed under GPL-3.0, free to use and modify
+- **Cross-Platform** - Native experience on macOS, Windows, and Linux
+- **Modern UI** - Built with React and Tailwind CSS for a clean, responsive interface
+
+## Tech Stack
+
+| Category | Technology |
+|----------|------------|
+| Framework | Electron 40 |
+| Frontend | React 19, TypeScript |
+| Build Tool | Vite 7 |
+| Terminal | xterm.js 5 |
+| Styling | Tailwind CSS 4 |
+| SSH/SFTP | ssh2, ssh2-sftp-client |
+| PTY | node-pty |
+| Icons | Lucide React |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Download and install Netcatty on your platform
+  </Card>
+  
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Connect to your first host and explore the features
+  </Card>
+</CardGroup>

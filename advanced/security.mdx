@@ -1,0 +1,406 @@
+---
+title: Security Best Practices
+description: Secure your SSH connections, manage host keys, and protect credentials
+icon: shield
+---
+
+Netcatty implements security best practices for SSH connections, credential storage, and host verification.
+
+## Authentication Methods
+
+Netcatty supports multiple SSH authentication methods, defined in `domain/models.ts:116`:
+
+- **Public key** (recommended) - RSA, ECDSA, ED25519
+- **Password** - Username/password authentication
+- **Certificate** - SSH certificate-based authentication
+- **Agent forwarding** - Use SSH agent for key management
+
+### Public Key Authentication
+
+Public key authentication is the most secure method.
+
+#### Supported Key Types
+
+```typescript
+// domain/models.ts:113
+type KeyType = 'RSA' | 'ECDSA' | 'ED25519';
+```
+
+**Recommended priority:**
+1. **ED25519** - Fastest, most secure (256-bit security)
+2. **ECDSA** - Good security, widely supported (256/384/521-bit)
+3. **RSA** - Maximum compatibility (2048/4096-bit minimum)
+
+#### Default Key Discovery
+
+Netcatty automatically searches for keys in `~/.ssh/` in this order:
+1. `id_ed25519` (preferred)
+2. `id_ecdsa`
+3. `id_rsa`
+
+Implementation in `electron/bridges/sshAuthHelper.cjs:73-89`.
+
+#### Encrypted Keys
+
+Netcatty detects and handles encrypted private keys:
+
+- **PKCS#8 format:** `-----BEGIN ENCRYPTED PRIVATE KEY-----`
+- **Legacy PEM:** `Proc-Type:` + `ENCRYPTED`
+- **OpenSSH format:** Cipher name check in key header
+
+When an encrypted key is detected, Netcatty prompts for the passphrase via `PassphraseModal` (components/PassphraseModal.tsx:1).
+
+### SSH Agent
+
+Netcatty supports SSH agent for centralized key management.
+
+#### Agent Socket Detection
+
+```javascript
+// electron/bridges/sshAuthHelper.cjs:129-134
+function getSshAgentSocket() {
+  if (process.platform === "win32") {
+    return "\\\\.\\pipe\\openssh-ssh-agent";
+  }
+  return process.env.SSH_AUTH_SOCK || null;
+}
+```
+
+#### Using SSH Agent
+
+**macOS:**
+```bash
+# Start SSH agent (usually running by default)
+eval "$(ssh-agent -s)"
+
+# Add key to agent
+ssh-add ~/.ssh/id_ed25519
+
+# Add with passphrase storage (macOS Keychain)
+ssh-add --apple-use-keychain ~/.ssh/id_ed25519
+```
+
+**Linux:**
+```bash
+# Start SSH agent
+eval "$(ssh-agent -s)"
+
+# Add key
+ssh-add ~/.ssh/id_ed25519
+```
+
+**Windows (OpenSSH):**
+```powershell
+# Start SSH agent service
+Get-Service ssh-agent | Set-Service -StartupType Automatic
+Start-Service ssh-agent
+
+# Add key
+ssh-add $HOME\.ssh\id_ed25519
+```
+
+### Agent Forwarding
+
+Agent forwarding allows you to use local SSH keys on remote servers.
+
+<Warning>
+Only enable agent forwarding for trusted hosts. Compromised servers can use forwarded agents to access other systems.
+</Warning>
+
+**Enable per host:**
+1. Open host details
+2. Enable **Agent Forwarding** in Advanced Settings
+3. Save configuration
+
+**Use cases:**
+- Git operations on remote servers
+- Hopping through bastion hosts
+- Accessing other servers from jump hosts
+
+**Security tip:** Use ProxyJump instead of agent forwarding when possible.
+
+## Credential Storage
+
+Netcatty stores credentials in different ways depending on the platform and configuration.
+
+### Local Storage
+
+By default, credentials are stored in localStorage (encrypted on disk by the OS):
+
+```typescript
+// infrastructure/config/storageKeys.ts:1-3
+STORAGE_KEY_HOSTS = 'netcatty_hosts_v1'
+STORAGE_KEY_KEYS = 'netcatty_keys_v1'
+STORAGE_KEY_IDENTITIES = 'netcatty_identities_v1'
+```
+
+### Keychain Integration
+
+For enhanced security, Netcatty integrates with system keychains:
+
+- **macOS:** Keychain Access
+- **Windows:** Windows Credential Manager
+- **Linux:** Secret Service API (GNOME Keyring, KWallet)
+
+Implementation in `electron/bridges/credentialBridge.cjs`.
+
+### Password Storage Options
+
+Per-host password storage is configurable:
+
+```typescript
+// domain/models.ts:74
+savePassword?: boolean; // Whether to save the password (default: true)
+```
+
+When disabled, Netcatty prompts for the password on each connection.
+
+### SSH Key Passphrase Storage
+
+```typescript
+// domain/models.ts:126-127
+passphrase?: string; // encrypted or stored securely
+savePassphrase?: boolean;
+```
+
+Passphrase handling in `electron/bridges/passphraseHandler.cjs`.
+
+## Known Hosts
+
+Netcatty implements SSH host key verification to prevent man-in-the-middle attacks.
+
+### Host Key Verification
+
+On first connection, Netcatty:
+
+1. Receives the server's public host key
+2. Displays key fingerprint in a confirmation dialog
+3. Asks user to verify and accept
+4. Stores accepted key in known hosts database
+
+Subsequent connections verify the key matches the stored fingerprint.
+
+### Known Hosts Storage
+
+```typescript
+// domain/models.ts:653-663
+interface KnownHost {
+  id: string;
+  hostname: string;
+  port: number;
+  keyType: string; // ssh-rsa, ssh-ed25519, ecdsa-sha2-nistp256, etc.
+  publicKey: string;
+  discoveredAt: number;
+  lastSeen?: number;
+  convertedToHostId?: string;
+}
+```
+
+Stored in localStorage:
+```typescript
+// infrastructure/config/storageKeys.ts:26
+STORAGE_KEY_KNOWN_HOSTS = 'netcatty_known_hosts_v1'
+```
+
+### Host Key Changed
+
+If a host key changes, Netcatty displays a warning:
+
+<Warning>
+**WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!**
+
+This could indicate a man-in-the-middle attack or the server was reinstalled/reconfigured.
+</Warning>
+
+The `KnownHostConfirmDialog` component (components/KnownHostConfirmDialog.tsx:1) handles this scenario.
+
+### Managing Known Hosts
+
+View and manage known hosts in **Vault > Known Hosts**:
+
+- View all known host keys and fingerprints
+- Remove outdated or incorrect entries
+- Export/import known hosts
+- Convert discovered hosts to managed hosts
+
+Implemented in `components/KnownHostsManager.tsx`.
+
+### System known_hosts Integration
+
+Netcatty can import entries from `~/.ssh/known_hosts` (system SSH known hosts file) for compatibility with command-line SSH.
+
+## Proxy and Jump Hosts
+
+### Proxy Support
+
+Netcatty supports HTTP and SOCKS5 proxies:
+
+```typescript
+// domain/models.ts:6-12
+interface ProxyConfig {
+  type: 'http' | 'socks5';
+  host: string;
+  port: number;
+  username?: string;
+  password?: string;
+}
+```
+
+Proxy implementation in `electron/bridges/proxyUtils.cjs`.
+
+### Jump Host / Bastion
+
+Connect through intermediate hosts:
+
+```typescript
+// domain/models.ts:14-17
+interface HostChainConfig {
+  hostIds: string[]; // Array of host IDs in order
+}
+```
+
+Useful for:
+- Accessing private networks through bastion hosts
+- Multi-hop SSH connections
+- Compliance requirements (audited jump servers)
+
+**Configuration:**
+1. Create host entries for jump host and target
+2. In target host, configure Host Chain
+3. Add jump host ID(s) in order
+4. Netcatty establishes connections sequentially
+
+## Connection Logging
+
+Netcatty logs all connection attempts for security auditing:
+
+```typescript
+// domain/models.ts:676-692
+interface ConnectionLog {
+  id: string;
+  hostId: string;
+  hostLabel: string;
+  hostname: string;
+  username: string;
+  protocol: 'ssh' | 'telnet' | 'local' | 'mosh' | 'serial';
+  startTime: number;
+  endTime?: number;
+  localUsername: string;
+  localHostname: string;
+  saved: boolean;
+  terminalData?: string; // For session replay
+}
+```
+
+View connection logs in **Settings > Connection Logs**.
+
+Implemented in `components/ConnectionLogsManager.tsx`.
+
+## Session Security
+
+### Keepalive
+
+Prevent idle disconnections and detect connection loss:
+
+```typescript
+// domain/models.ts:428
+keepAliveInterval: number; // Seconds between keepalive packets (0 = disabled)
+```
+
+**Recommended values:**
+- 0 - Disable (use SSH library defaults)
+- 30 - Standard networks
+- 60 - Stable connections
+- 300 - Minimize traffic
+
+### Session Recording
+
+Netcatty can automatically save terminal sessions:
+
+```typescript
+// domain/models.ts:694-701
+interface SessionLogsSettings {
+  enabled: boolean;
+  directory: string;
+  format: 'txt' | 'raw' | 'html';
+}
+```
+
+Configuration:
+1. **Settings > Terminal > Session Logs**
+2. Enable auto-save
+3. Choose directory and format
+4. Logs are saved per session
+
+Implementation in `electron/bridges/sessionLogsBridge.cjs`.
+
+## Environment Variables
+
+Securely pass environment variables to SSH sessions:
+
+```typescript
+// domain/models.ts:19-23
+interface EnvVar {
+  name: string;
+  value: string;
+}
+
+// domain/models.ts:84
+environmentVariables?: EnvVar[];
+```
+
+<Warning>
+Do not store secrets in environment variables. Use vault systems or SSH agent instead.
+</Warning>
+
+## Security Hardening Checklist
+
+<AccordionGroup>
+  <Accordion title="Authentication">
+    - [ ] Use ED25519 or ECDSA keys (not RSA unless required)
+    - [ ] Use 2048-bit minimum for RSA keys (4096-bit recommended)
+    - [ ] Encrypt private keys with strong passphrases
+    - [ ] Use SSH agent instead of storing passphrases
+    - [ ] Disable password authentication on servers (key-only)
+    - [ ] Use certificate authentication for organizations
+  </Accordion>
+
+  <Accordion title="Host Verification">
+    - [ ] Always verify host key fingerprints on first connection
+    - [ ] Investigate any host key changed warnings
+    - [ ] Regularly review known hosts
+    - [ ] Remove entries for decommissioned servers
+    - [ ] Document expected host key changes (server reinstalls)
+  </Accordion>
+
+  <Accordion title="Credentials">
+    - [ ] Enable system keychain integration
+    - [ ] Don't save passwords for sensitive systems
+    - [ ] Use Identities feature for shared credentials
+    - [ ] Rotate keys periodically
+    - [ ] Use unique keys per environment (dev/staging/prod)
+  </Accordion>
+
+  <Accordion title="Network Security">
+    - [ ] Use VPN for untrusted networks
+    - [ ] Use bastion/jump hosts for production access
+    - [ ] Enable connection logging
+    - [ ] Use Mosh for untrusted networks (not Telnet)
+    - [ ] Isolate legacy equipment requiring weak algorithms
+  </Accordion>
+
+  <Accordion title="Audit and Compliance">
+    - [ ] Enable session logging for compliance
+    - [ ] Review connection logs periodically
+    - [ ] Export/backup known hosts database
+    - [ ] Document jump host topology
+    - [ ] Test disaster recovery (key backup/restore)
+  </Accordion>
+</AccordionGroup>
+
+## Further Reading
+
+- [SSH Protocol Specification (RFC 4253)](https://tools.ietf.org/html/rfc4253)
+- [Mozilla SSH Guidelines](https://infosec.mozilla.org/guidelines/openssh)
+- [NIST Guidelines for SSH](https://csrc.nist.gov/publications/detail/sp/800-52/rev-2/final)
+- [OpenSSH Best Practices](https://www.openssh.com/security.html)

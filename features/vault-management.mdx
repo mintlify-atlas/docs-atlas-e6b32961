@@ -1,0 +1,302 @@
+---
+title: Vault Management
+description: Organize and manage your SSH hosts with flexible vault views and powerful search capabilities
+---
+
+The Vault is Netcatty's central hub for managing your SSH hosts. It offers multiple view modes, powerful organization features, and fast search to help you efficiently manage dozens or hundreds of servers.
+
+## View Modes
+
+Netcatty provides three distinct view modes to match your workflow:
+
+<Tabs>
+  <Tab title="Grid View">
+    Grid view displays your hosts as visual cards with distro icons, making it easy to quickly identify and access servers at a glance.
+
+    **Best for:**
+    - Visual browsing of hosts
+    - Quick identification by OS/distro icons
+    - Overview of your infrastructure
+
+    ![Vault Grid View](https://raw.githubusercontent.com/binaricat/Netcatty/main/screenshots/vault_grid_view.png)
+
+    Each card shows:
+    - Host label and hostname
+    - Operating system icon (Ubuntu, Debian, CentOS, etc.)
+    - Group membership
+    - Quick action buttons
+  </Tab>
+
+  <Tab title="List View">
+    List view provides a dense, scannable table format with all host details visible in columns.
+
+    **Best for:**
+    - Scanning large numbers of hosts
+    - Comparing host configurations
+    - Quick filtering and sorting
+
+    ![Vault List View](https://raw.githubusercontent.com/binaricat/Netcatty/main/screenshots/vault_list_view.png)
+
+    Columns include:
+    - Label
+    - Hostname/IP
+    - Username
+    - Port
+    - Protocol
+    - Group
+    - Tags
+  </Tab>
+
+  <Tab title="Tree View">
+    Tree view organizes hosts hierarchically by groups, perfect for managing complex infrastructure with nested organizational structures.
+
+    **Best for:**
+    - Hierarchical organization (Production → Web Servers → App01)
+    - Large fleet management
+    - Department/project-based organization
+
+    ![Vault Tree View](https://raw.githubusercontent.com/binaricat/Netcatty/main/screenshots/treeview-dark.png)
+
+    Features:
+    - Collapsible group nodes
+    - Drag-and-drop to reorganize
+    - Group-level operations
+    - Nested group support with `/` separators
+  </Tab>
+</Tabs>
+
+## Host Organization
+
+### Groups
+
+Organize hosts into groups using the `group` field. Groups support hierarchical organization with `/` separators:
+
+```json
+{
+  "group": "Production/Web Servers",
+  "label": "app-01",
+  "hostname": "10.0.1.10"
+}
+```
+
+**Group hierarchy examples:**
+- `Production/Database`
+- `Staging/App Servers/Node 01`
+- `Development`
+- `Clients/Acme Corp/Prod`
+
+<Tip>
+In tree view, groups are automatically organized into collapsible nodes. You can drag hosts between groups or create new nested groups on the fly.
+</Tip>
+
+### Tags
+
+Use tags for cross-cutting categorization that doesn't fit hierarchical groups:
+
+```json
+{
+  "tags": ["docker", "monitoring", "high-priority"],
+  "label": "metrics-01"
+}
+```
+
+Tags are useful for:
+- Technology stack (`docker`, `kubernetes`, `postgres`)
+- Roles (`web`, `database`, `cache`)
+- Environments (`production`, `staging`, `dev`)
+- Maintenance windows (`reboot-window-1`, `patching-group-a`)
+
+## Search and Filtering
+
+The vault includes powerful search capabilities to quickly find hosts:
+
+<Steps>
+  <Step title="Open Quick Search">
+    Press `Ctrl+K` (Windows/Linux) or `⌘+K` (macOS) to open the quick switcher.
+  </Step>
+
+  <Step title="Enter Search Query">
+    Type any part of:
+    - Host label
+    - Hostname or IP address
+    - Username
+    - Group name
+    - Tags
+
+    Results filter in real-time as you type.
+  </Step>
+
+  <Step title="Navigate and Connect">
+    Use arrow keys to navigate results, then press `Enter` to connect to the selected host.
+  </Step>
+</Steps>
+
+### Search Syntax
+
+The search supports multiple fields:
+
+| Query | Matches |
+|-------|--------|
+| `web` | Any host with "web" in label, hostname, or group |
+| `10.0.1` | Any host with IP starting with `10.0.1` |
+| `production` | Hosts in production group or with production tag |
+| `ubuntu` | Hosts with detected Ubuntu distro or "ubuntu" in name |
+
+## Host Actions
+
+Right-click any host in the vault to access quick actions:
+
+<AccordionGroup>
+  <Accordion title="Connect">
+    Open a new terminal session to the host in the current workspace.
+  </Accordion>
+
+  <Accordion title="SFTP">
+    Open the SFTP browser to manage files on the remote host.
+  </Accordion>
+
+  <Accordion title="Edit">
+    Open the host configuration dialog to modify connection settings, authentication, environment variables, and more.
+  </Accordion>
+
+  <Accordion title="Duplicate">
+    Create a copy of the host with all settings pre-filled, useful for creating similar hosts quickly.
+  </Accordion>
+
+  <Accordion title="Delete">
+    Remove the host from your vault. This only deletes the connection profile, not the actual server.
+
+    <Warning>
+    Deletion is permanent and cannot be undone. The host configuration will be removed from your vault.
+    </Warning>
+  </Accordion>
+</AccordionGroup>
+
+## Distro Detection
+
+Netcatty automatically detects the operating system and distribution of connected hosts by analyzing system files like `/etc/os-release`. Detected distros are displayed with distinctive icons:
+
+<CardGroup cols={3}>
+  <Card title="Ubuntu" icon="ubuntu">
+    Detected from Ubuntu systems
+  </Card>
+  <Card title="Debian" icon="debian">
+    Detected from Debian systems
+  </Card>
+  <Card title="CentOS/RHEL" icon="redhat">
+    Detected from Red Hat-based systems
+  </Card>
+  <Card title="Fedora" icon="fedora">
+    Detected from Fedora systems
+  </Card>
+  <Card title="Arch Linux" icon="archlinux">
+    Detected from Arch-based systems
+  </Card>
+  <Card title="Alpine" icon="alpine">
+    Detected from Alpine Linux
+  </Card>
+</CardGroup>
+
+Supported distros include: Ubuntu, Debian, CentOS, Fedora, Arch, Alpine, Amazon Linux, Red Hat, Rocky Linux, openSUSE, Oracle Linux, and Kali.
+
+## Import and Export
+
+### Import Hosts
+
+Import hosts from various sources:
+
+<Tabs>
+  <Tab title="SSH Config">
+    Import hosts from your `~/.ssh/config` file:
+
+    1. Click **Import** in the vault toolbar
+    2. Select **Import from SSH Config**
+    3. Choose between:
+       - **One-time import**: Copies hosts into Netcatty
+       - **Managed source**: Two-way sync with SSH config
+
+    See [SSH Config Integration](/integrations/ssh-config) for details.
+  </Tab>
+
+  <Tab title="JSON">
+    Import hosts from a JSON file:
+
+    ```json
+    [
+      {
+        "label": "Production Web",
+        "hostname": "web.example.com",
+        "port": 22,
+        "username": "deploy",
+        "group": "Production",
+        "tags": ["web", "nginx"]
+      }
+    ]
+    ```
+
+    1. Click **Import** → **Import from JSON**
+    2. Select your JSON file
+    3. Review and confirm the import
+  </Tab>
+</Tabs>
+
+### Export Hosts
+
+Export your vault for backup or sharing:
+
+1. Click **Export** in the vault toolbar
+2. Choose format:
+   - **JSON**: Full host configuration
+   - **SSH Config**: Compatible with OpenSSH config format
+3. Select destination and save
+
+<Note>
+Exported files do not include passwords or SSH key passphrases. These are stored separately in the system keychain for security.
+</Note>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Consistent Naming" icon="tag">
+    Adopt a naming convention for labels like `env-role-id` (e.g., `prod-web-01`) to make search and sorting more effective.
+  </Card>
+
+  <Card title="Leverage Groups" icon="folder-tree">
+    Organize hosts hierarchically by environment, project, or client for easy navigation in tree view.
+  </Card>
+
+  <Card title="Add Meaningful Tags" icon="tags">
+    Tag hosts with technology stack, roles, and maintenance windows for flexible filtering.
+  </Card>
+
+  <Card title="Regular Backups" icon="floppy-disk">
+    Export your vault periodically and store backups securely, or enable [Cloud Sync](/integrations/cloud-sync) for automatic backups.
+  </Card>
+</CardGroup>
+
+## Keyboard Shortcuts
+
+| Action | macOS | Windows/Linux |
+|--------|-------|---------------|
+| Quick search | `⌘+K` | `Ctrl+K` |
+| New host | `⌘+N` | `Ctrl+N` |
+| Refresh vault | `⌘+R` | `Ctrl+R` |
+| Focus search | `⌘+F` | `Ctrl+F` |
+| Switch view mode | `⌘+1/2/3` | `Ctrl+1/2/3` |
+
+## Related Topics
+
+<CardGroup cols={2}>
+  <Card title="Host Configuration" icon="gear" href="/guides/host-configuration">
+    Learn about advanced host configuration options
+  </Card>
+  <Card title="Authentication" icon="key" href="/guides/authentication">
+    Set up SSH keys and authentication methods
+  </Card>
+  <Card title="SSH Config Integration" icon="file-code" href="/integrations/ssh-config">
+    Sync with your existing SSH config file
+  </Card>
+  <Card title="Cloud Sync" icon="cloud" href="/integrations/cloud-sync">
+    Back up your vault across devices
+  </Card>
+</CardGroup>

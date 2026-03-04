@@ -1,0 +1,417 @@
+---
+title: SSH Connections
+description: Connect to remote servers with SSH, Telnet, Mosh, and serial protocols with advanced authentication and proxy support
+---
+
+Netcatty supports multiple connection protocols to access remote systems, from standard SSH to legacy Telnet and specialized serial connections for network equipment.
+
+## Supported Protocols
+
+Netcatty provides first-class support for multiple connection types:
+
+<CardGroup cols={2}>
+  <Card title="SSH" icon="terminal">
+    Industry-standard secure shell protocol with full feature support including key authentication, agent forwarding, and port forwarding.
+  </Card>
+  <Card title="Telnet" icon="network-wired">
+    Legacy protocol for older systems and network equipment that don't support SSH.
+    
+    <Warning>Telnet transmits data in plain text. Only use on trusted networks.</Warning>
+  </Card>
+  <Card title="Mosh" icon="signal">
+    Mobile Shell for roaming and intermittent connectivity, perfect for laptops and mobile devices.
+  </Card>
+  <Card title="Serial" icon="plug">
+    Direct serial port connections for console access to routers, switches, and embedded devices.
+  </Card>
+  <Card title="Local Terminal" icon="window-maximize">
+    Launch local shell sessions (bash, zsh, PowerShell) without remote connection.
+  </Card>
+</CardGroup>
+
+## SSH Connections
+
+### Basic Configuration
+
+Configure SSH connection parameters in the host form:
+
+<ParamField path="hostname" type="string" required>
+  Server hostname or IP address (e.g., `web.example.com` or `192.168.1.100`)
+</ParamField>
+
+<ParamField path="port" type="number" default="22">
+  SSH port number. Standard is 22, but many servers use custom ports for security.
+</ParamField>
+
+<ParamField path="username" type="string" required>
+  Username for authentication on the remote system
+</ParamField>
+
+<ParamField path="protocol" type="string" default="ssh">
+  Connection protocol. Set to `"ssh"` for SSH connections.
+</ParamField>
+
+### Authentication Methods
+
+SSH supports multiple authentication methods:
+
+<Tabs>
+  <Tab title="SSH Key">
+    Recommended method using public-key cryptography:
+
+    ```json
+    {
+      "authMethod": "key",
+      "identityFileId": "key-uuid-here"
+    }
+    ```
+
+    1. Generate or import an SSH key in the [Keychain Manager](/guides/keychain-management)
+    2. Copy the public key to the server (`~/.ssh/authorized_keys`)
+    3. Select the key in the host configuration
+
+    <Tip>
+    ED25519 keys are recommended for best security and performance. Netcatty can generate these for you.
+    </Tip>
+  </Tab>
+
+  <Tab title="Password">
+    Simple password authentication:
+
+    ```json
+    {
+      "authMethod": "password",
+      "password": "your-password",
+      "savePassword": true
+    }
+    ```
+
+    <Warning>
+    Passwords are stored in the system keychain, but SSH keys are more secure for production systems.
+    </Warning>
+  </Tab>
+
+  <Tab title="Certificate">
+    SSH certificate-based authentication:
+
+    ```json
+    {
+      "authMethod": "certificate",
+      "identityFileId": "cert-uuid-here"
+    }
+    ```
+
+    Certificates include both the private key and certificate signed by a CA.
+  </Tab>
+</Tabs>
+
+### SSH Agent Forwarding
+
+Enable agent forwarding to use your local SSH keys on the remote server:
+
+```json
+{
+  "agentForwarding": true
+}
+```
+
+**Use cases:**
+- Git operations on remote servers using your local SSH keys
+- Jumping through bastion hosts without copying keys
+- Running Ansible or deployment scripts
+
+<Warning>
+Only enable agent forwarding for trusted servers. Compromised servers could abuse forwarded credentials.
+</Warning>
+
+## Multi-Protocol Support
+
+A single host can support multiple protocols simultaneously. Configure additional protocols in the `protocols` array:
+
+```json
+{
+  "label": "Router-01",
+  "hostname": "192.168.1.1",
+  "protocol": "ssh",
+  "port": 22,
+  "username": "admin",
+  "protocols": [
+    {
+      "protocol": "ssh",
+      "port": 22,
+      "enabled": true
+    },
+    {
+      "protocol": "telnet",
+      "port": 23,
+      "enabled": true
+    }
+  ]
+}
+```
+
+Switch between protocols:
+1. Right-click the host in the vault
+2. Select **Connect with** → Choose protocol
+3. Netcatty opens a session using the selected protocol
+
+## Telnet Connections
+
+For legacy systems and network equipment:
+
+<ParamField path="telnetEnabled" type="boolean" default="false">
+  Enable Telnet protocol for this host
+</ParamField>
+
+<ParamField path="telnetPort" type="number" default="23">
+  Telnet port (standard is 23)
+</ParamField>
+
+<ParamField path="telnetUsername" type="string">
+  Username for Telnet login (if different from SSH username)
+</ParamField>
+
+<ParamField path="telnetPassword" type="string">
+  Password for Telnet authentication
+</ParamField>
+
+<Warning>
+**Security Notice**: Telnet transmits all data, including passwords, in plain text. Only use Telnet:
+- On isolated management networks
+- For local/direct connections
+- With legacy equipment that doesn't support SSH
+</Warning>
+
+## Mosh Connections
+
+Mosh (Mobile Shell) is designed for mobile and intermittent connections:
+
+<ParamField path="moshEnabled" type="boolean" default="false">
+  Enable Mosh protocol support
+</ParamField>
+
+<ParamField path="moshServerPath" type="string">
+  Custom path to `mosh-server` binary on remote host (optional)
+</ParamField>
+
+### Requirements
+
+<Steps>
+  <Step title="Install Mosh on Server">
+    Install `mosh` package on the remote server:
+
+    ```bash Ubuntu/Debian
+    sudo apt install mosh
+    ```
+
+    ```bash CentOS/RHEL
+    sudo yum install mosh
+    ```
+
+    ```bash macOS
+    brew install mosh
+    ```
+  </Step>
+
+  <Step title="Configure Firewall">
+    Mosh uses UDP ports 60000-61000. Ensure these are open:
+
+    ```bash
+    sudo ufw allow 60000:61000/udp
+    ```
+  </Step>
+
+  <Step title="Enable in Netcatty">
+    Check **Enable Mosh** in the host configuration. Netcatty will use Mosh for connections when available.
+  </Step>
+</Steps>
+
+### Benefits
+
+- **Roaming support**: Survives network changes (WiFi to cellular)
+- **Instant typing**: Local echo reduces latency
+- **Resilient**: Handles intermittent connectivity gracefully
+
+## Connection Features
+
+### Startup Commands
+
+Automatically run commands after connection:
+
+```json
+{
+  "startupCommand": "cd /var/www && source venv/bin/activate"
+}
+```
+
+Use cases:
+- Change to project directory
+- Activate virtual environments
+- Source environment files
+- Load tmux/screen sessions
+
+### Environment Variables
+
+Set custom environment variables for the session:
+
+```json
+{
+  "environmentVariables": [
+    { "name": "EDITOR", "value": "vim" },
+    { "name": "PROJECT_ENV", "value": "production" }
+  ]
+}
+```
+
+### Character Encoding
+
+Configure character set for proper text display:
+
+```json
+{
+  "charset": "utf-8"
+}
+```
+
+Supported encodings: `utf-8`, `iso-8859-1`, `windows-1252`, `gbk`, `big5`, and more.
+
+## Proxy and Jump Hosts
+
+Connect through intermediate servers:
+
+<Tabs>
+  <Tab title="Jump Hosts">
+    Use SSH bastion hosts:
+
+    ```json
+    {
+      "hostChain": {
+        "hostIds": ["bastion-id", "target-host-id"]
+      }
+    }
+    ```
+
+    Netcatty establishes connections in sequence: Local → Bastion → Target.
+
+    See [Jump Hosts Integration](/integrations/jump-hosts) for details.
+  </Tab>
+
+  <Tab title="HTTP/SOCKS Proxy">
+    Connect through HTTP or SOCKS5 proxies:
+
+    ```json
+    {
+      "proxyConfig": {
+        "type": "socks5",
+        "host": "proxy.example.com",
+        "port": 1080,
+        "username": "proxyuser",
+        "password": "proxypass"
+      }
+    }
+    ```
+
+    Supported proxy types:
+    - `http`: HTTP CONNECT proxy
+    - `socks5`: SOCKS5 proxy with optional authentication
+  </Tab>
+</Tabs>
+
+## Legacy Algorithm Support
+
+For older SSH servers (network equipment, legacy systems), enable legacy algorithms:
+
+```json
+{
+  "legacyAlgorithms": true
+}
+```
+
+This enables older key exchange, cipher, and MAC algorithms that are disabled by default in modern SSH implementations.
+
+<Warning>
+Legacy algorithms are less secure. Only enable for equipment that requires them, and prefer upgrading firmware when possible.
+</Warning>
+
+See [Legacy Algorithms](/advanced/legacy-algorithms) for full details.
+
+## Connection Monitoring
+
+### Session Logs
+
+Netcatty logs all connection events for troubleshooting:
+
+- Connection attempts and results
+- Authentication method used
+- Disconnect reasons
+- Error messages
+
+Access logs: **Settings** → **Logs** → **Connection Logs**
+
+### Connection Status
+
+The terminal tab shows connection status:
+
+| Indicator | Status |
+|-----------|--------|
+| 🟢 Green | Connected and active |
+| 🟡 Yellow | Connecting or reconnecting |
+| 🔴 Red | Disconnected or failed |
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Connection Refused">
+    **Cause**: SSH service not running or firewall blocking connection.
+
+    **Solutions**:
+    - Verify SSH service is running: `sudo systemctl status sshd`
+    - Check firewall allows SSH: `sudo ufw status`
+    - Test connectivity: `nc -zv hostname 22`
+  </Accordion>
+
+  <Accordion title="Authentication Failed">
+    **Cause**: Wrong credentials or SSH key not authorized.
+
+    **Solutions**:
+    - Verify username and password
+    - Check SSH key is added to `~/.ssh/authorized_keys` on server
+    - Ensure correct key permissions: `chmod 600 ~/.ssh/id_ed25519`
+    - Check server logs: `sudo tail /var/log/auth.log`
+  </Accordion>
+
+  <Accordion title="Connection Timeout">
+    **Cause**: Network issue, firewall, or wrong IP/hostname.
+
+    **Solutions**:
+    - Ping the server: `ping hostname`
+    - Check DNS resolution: `nslookup hostname`
+    - Verify SSH port is correct
+    - Check for network/VPN issues
+  </Accordion>
+
+  <Accordion title="Algorithm Negotiation Failed">
+    **Cause**: Server uses legacy SSH algorithms not supported by modern clients.
+
+    **Solution**: Enable **Legacy Algorithms** in host configuration.
+  </Accordion>
+</AccordionGroup>
+
+For more troubleshooting help, see [Troubleshooting Guide](/advanced/troubleshooting).
+
+## Related Topics
+
+<CardGroup cols={2}>
+  <Card title="Authentication Methods" icon="key" href="/guides/authentication">
+    Detailed guide to SSH keys, passwords, and certificates
+  </Card>
+  <Card title="Jump Hosts" icon="server" href="/integrations/jump-hosts">
+    Configure bastion hosts and proxy chains
+  </Card>
+  <Card title="Serial Connections" icon="plug" href="/integrations/serial-connections">
+    Connect to console ports on network equipment
+  </Card>
+  <Card title="Port Forwarding" icon="right-left" href="/features/port-forwarding">
+    Tunnel traffic through SSH connections
+  </Card>
+</CardGroup>
