@@ -1,0 +1,107 @@
+{
+  "projectType": "saas",
+  "projectName": "Netcatty",
+  "projectDescription": "Modern SSH client, SFTP browser, and terminal manager with workspace management, split panes, and cloud sync.",
+  "theme": "palm",
+  "primaryColor": "#2b69ee",
+  "lightColor": "#8aacf4",
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/vault-management",
+              "features/ssh-connections",
+              "features/terminal-workspaces",
+              "features/sftp-browser",
+              "features/port-forwarding"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/host-configuration",
+              "guides/authentication",
+              "guides/keychain-management",
+              "guides/workspace-sessions",
+              "guides/split-terminals",
+              "guides/custom-themes",
+              "guides/keyword-highlighting"
+            ]
+          },
+          {
+            "group": "Integrations",
+            "pages": [
+              "integrations/cloud-sync",
+              "integrations/ssh-config",
+              "integrations/jump-hosts",
+              "integrations/serial-connections"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "advanced/protocols",
+              "advanced/legacy-algorithms",
+              "advanced/security",
+              "advanced/troubleshooting"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Development",
+        "groups": [
+          {
+            "group": "Contributing",
+            "pages": [
+              "development/architecture",
+              "development/building",
+              "development/contributing"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "SSH/Telnet/Mosh/Serial connections with multi-protocol support",
+    "Vault organization with grid/list/tree views and host grouping",
+    "Split terminal panes and session management",
+    "Integrated SFTP browser with drag-and-drop and built-in editor",
+    "Port forwarding with local, remote, and dynamic tunnels",
+    "Keychain management for SSH keys and identities",
+    "Custom themes and keyword highlighting",
+    "Cloud sync for configuration backup",
+    "Jump host/bastion support with host chaining",
+    "Global hotkeys and quick switcher"
+  ],
+  "publicApiSurface": [
+    "Host",
+    "SSHKey",
+    "Identity",
+    "Workspace",
+    "PortForwardingRule",
+    "ProxyConfig",
+    "HostChainConfig",
+    "SerialConfig",
+    "ProtocolConfig",
+    "SftpBookmark",
+    "KeywordHighlightRule",
+    "Snippet",
+    "ManagedSource",
+    "CloudSyncProvider"
+  ]
+}
